@@ -1,0 +1,2983 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>下方 - 5道方 / 6道方</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;500;700&display=swap"></noscript>
+<style>
+  /* fonts loaded via <link> in <head> for non-blocking */
+
+  :root {
+    --bg: #0b1020;
+    --panel: rgba(17, 24, 39, 0.92);
+    --panel-border: rgba(120, 140, 190, 0.28);
+    --panel-soft: rgba(255, 255, 255, 0.035);
+    --soft-block: rgba(255, 255, 255, 0.04);
+    --soft-border: rgba(170, 191, 236, 0.12);
+    --board-bg: linear-gradient(180deg, #b98542 0%, #8f5c23 100%);
+    --board-overlay:
+      linear-gradient(90deg, rgba(255,255,255,0.06), transparent 25%, transparent 75%, rgba(0,0,0,0.08)),
+      radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.12), transparent 28%);
+    --board-shadow: rgba(0, 0, 0, 0.32);
+    --line: rgba(78, 45, 16, 0.72);
+    --line-strong: rgba(49, 26, 8, 0.88);
+    --text: #edf2ff;
+    --muted: #93a4c7;
+    --accent: #f6c453;
+    --page-background:
+      radial-gradient(circle at top, rgba(77, 102, 180, 0.25), transparent 38%),
+      linear-gradient(180deg, #10172c 0%, #070b16 100%);
+    --scene-overlay:
+      radial-gradient(circle at 18% 12%, rgba(255,255,255,0.06), transparent 16%),
+      radial-gradient(circle at 82% 76%, rgba(0,0,0,0.12), transparent 20%),
+      repeating-linear-gradient(35deg, rgba(255,255,255,0.018) 0 2px, transparent 2px 12px);
+    --black-piece: radial-gradient(circle at 35% 30%, #4b5168 0%, #1e2435 45%, #090c14 100%);
+    --white-piece: radial-gradient(circle at 35% 30%, #ffffff 0%, #eef1f7 45%, #c5cfdd 100%);
+    --danger: #ff7070;
+    --ok: #6ee7b7;
+    --pending: #7dd3fc;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    position: relative;
+    background: var(--page-background);
+    color: var(--text);
+    font-family: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    padding: 24px;
+    padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+    transition: background 0.3s ease, color 0.3s ease;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: var(--scene-overlay);
+    opacity: 0.88;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  body[data-scene="yard"]::after {
+    background-image: url("yard-bg.jpg");
+    opacity: 0.28;
+  }
+
+  body[data-scene="concrete"]::after {
+    background-image: url("concrete-bg.jpg");
+    opacity: 0.22;
+  }
+
+  body[data-scene="wood"]::after {
+    background-image: url("tree-shade-bg.jpg");
+    opacity: 0.24;
+  }
+
+  body[data-scene="yard"] {
+    --panel: rgba(49, 33, 20, 0.84);
+    --panel-border: rgba(212, 167, 102, 0.22);
+    --panel-soft: rgba(255, 242, 220, 0.055);
+    --soft-block: rgba(255, 245, 227, 0.06);
+    --soft-border: rgba(232, 202, 152, 0.14);
+    --board-bg:
+      radial-gradient(circle at 24% 18%, rgba(255, 220, 155, 0.24), transparent 28%),
+      linear-gradient(180deg, #bb8750 0%, #a26935 52%, #875124 100%);
+    --board-overlay:
+      radial-gradient(circle at 16% 18%, rgba(255,255,255,0.14), transparent 16%),
+      repeating-linear-gradient(25deg, rgba(88, 52, 20, 0.06) 0 3px, transparent 3px 15px),
+      linear-gradient(90deg, rgba(255,255,255,0.05), transparent 28%, transparent 72%, rgba(70,38,10,0.08));
+    --line: rgba(88, 48, 14, 0.7);
+    --page-background:
+      radial-gradient(circle at top, rgba(255, 199, 118, 0.12), transparent 26%),
+      linear-gradient(180deg, #6b4a2e 0%, #402a1d 100%);
+    --scene-overlay:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 14%),
+      radial-gradient(circle at 70% 70%, rgba(0,0,0,0.12), transparent 18%),
+      repeating-radial-gradient(circle at 30% 30%, rgba(255,255,255,0.02) 0 2px, transparent 2px 16px);
+    --muted: #dcc6a8;
+    --accent: #ffd07a;
+  }
+
+  body[data-scene="concrete"] {
+    --panel: rgba(29, 36, 45, 0.86);
+    --panel-border: rgba(148, 166, 190, 0.22);
+    --panel-soft: rgba(238, 244, 255, 0.045);
+    --soft-block: rgba(230, 238, 248, 0.05);
+    --soft-border: rgba(166, 181, 201, 0.14);
+    --board-bg:
+      radial-gradient(circle at 26% 18%, rgba(255,255,255,0.09), transparent 24%),
+      linear-gradient(180deg, #7b7f85 0%, #64696f 48%, #4d5258 100%);
+    --board-overlay:
+      radial-gradient(circle at 70% 26%, rgba(255,255,255,0.1), transparent 15%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 13px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 17px);
+    --line: rgba(39, 46, 53, 0.8);
+    --page-background:
+      radial-gradient(circle at top, rgba(157, 180, 212, 0.12), transparent 28%),
+      linear-gradient(180deg, #5b6673 0%, #343b45 100%);
+    --scene-overlay:
+      radial-gradient(circle at 22% 18%, rgba(255,255,255,0.06), transparent 13%),
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.014) 0 2px, transparent 2px 9px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,0.012) 0 3px, transparent 3px 15px);
+    --muted: #c5d0de;
+    --accent: #f4d48f;
+  }
+
+  body[data-scene="wood"] {
+    --panel: rgba(28, 38, 22, 0.82);
+    --panel-border: rgba(142, 180, 108, 0.22);
+    --panel-soft: rgba(220, 242, 206, 0.05);
+    --soft-block: rgba(216, 240, 200, 0.055);
+    --soft-border: rgba(162, 198, 132, 0.14);
+    --board-bg:
+      radial-gradient(circle at 30% 22%, rgba(255, 235, 170, 0.18), transparent 24%),
+      linear-gradient(180deg, #9e7540 0%, #7a5428 55%, #5e3f1c 100%);
+    --board-overlay:
+      radial-gradient(circle at 44% 36%, rgba(255,255,255,0.1), transparent 18%),
+      radial-gradient(circle at 68% 58%, rgba(0,0,0,0.06), transparent 14%),
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0 3px, transparent 3px 19px);
+    --line: rgba(56, 30, 10, 0.75);
+    --page-background:
+      radial-gradient(circle at 40% 20%, rgba(120, 180, 80, 0.1), transparent 28%),
+      linear-gradient(180deg, #3a4a28 0%, #24301a 100%);
+    --scene-overlay:
+      radial-gradient(circle at 35% 25%, rgba(255,245,180,0.06), transparent 18%),
+      radial-gradient(circle at 65% 60%, rgba(0,0,0,0.08), transparent 16%),
+      repeating-radial-gradient(circle at 50% 40%, rgba(255,255,255,0.015) 0 3px, transparent 3px 22px);
+    --muted: #c8d8b4;
+    --accent: #e8d480;
+  }
+
+  .app {
+    width: min(1400px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    padding: 20px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .title-wrap h1 {
+    font-family: "Press Start 2P", monospace;
+    font-size: clamp(18px, 3vw, 30px);
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-shadow: 0 4px 0 rgba(71, 45, 5, 0.65);
+  }
+
+  .title-wrap p {
+    color: var(--muted);
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .segmented {
+    display: inline-flex;
+    border: 1px solid rgba(164, 184, 231, 0.28);
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .segmented button,
+  .btn {
+    border: 0;
+    cursor: pointer;
+    color: var(--text);
+    transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .segmented button {
+    background: transparent;
+    padding: 12px 16px;
+    font: 700 13px "Noto Sans SC", sans-serif;
+  }
+
+  .segmented button.active {
+    background: rgba(246, 196, 83, 0.18);
+    color: #fff6cf;
+  }
+
+  .btn {
+    padding: 12px 18px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(167, 188, 236, 0.22);
+    font: 700 13px "Noto Sans SC", sans-serif;
+  }
+
+  .btn:hover,
+  .segmented button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn.primary {
+    background: rgba(246, 196, 83, 0.18);
+    border-color: rgba(246, 196, 83, 0.4);
+    color: #fff4ca;
+  }
+
+  .btn.danger {
+    background: rgba(255, 112, 112, 0.12);
+    border-color: rgba(255, 112, 112, 0.34);
+    color: #ffd0d0;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr) 320px;
+    gap: 18px;
+    align-items: start;
+  }
+
+  .panel,
+  .board-panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--panel-soft);
+    border: 1px solid var(--soft-border);
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .card h2,
+  .card h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: var(--accent);
+  }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat {
+    background: var(--soft-block);
+    border-radius: 14px;
+    padding: 12px;
+    min-height: 90px;
+  }
+
+  .stat .label {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .stat .value {
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .player-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    background: var(--soft-block);
+    border: 1px solid transparent;
+  }
+
+  .player-card.active {
+    border-color: rgba(125, 211, 252, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
+  }
+
+  .player-card .stone-preview {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+  }
+
+  .stone-preview,
+  .stone {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stone-preview::after,
+  .stone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .stone-preview.marker-pebble,
+  .stone.marker-pebble {
+    border-radius: 46% 54% 51% 49% / 43% 47% 53% 57%;
+  }
+
+  .stone-preview.marker-pebble.black,
+  .stone.marker-pebble.black {
+    background: var(--black-piece);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .stone-preview.marker-pebble.white,
+  .stone.marker-pebble.white {
+    background: var(--white-piece);
+    border: 2px solid rgba(78, 92, 121, 0.55);
+  }
+
+  .stone-preview.marker-pebble::after,
+  .stone.marker-pebble::after {
+    background:
+      radial-gradient(circle at 28% 24%, rgba(255,255,255,0.28), transparent 28%),
+      radial-gradient(circle at 72% 68%, rgba(0,0,0,0.16), transparent 34%);
+  }
+
+  .stone-preview.marker-brick,
+  .stone.marker-brick {
+    border-radius: 8px;
+  }
+
+  .stone.marker-brick {
+    inset: auto;
+    width: 34px;
+    height: 24px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-6deg);
+  }
+
+  .stone-preview.marker-brick {
+    width: 32px;
+    height: 22px;
+    margin-top: 1px;
+    transform: rotate(-6deg);
+  }
+
+  .stone-preview.marker-brick.black,
+  .stone.marker-brick.black {
+    background:
+      linear-gradient(180deg, #b46437 0%, #8b4120 50%, #6b2812 100%);
+    border: 2px solid #562010;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.28),
+      inset 0 2px 2px rgba(255,255,255,0.14);
+  }
+
+  .stone-preview.marker-brick.white,
+  .stone.marker-brick.white {
+    background:
+      linear-gradient(180deg, #f3d7b0 0%, #deb57e 55%, #c49057 100%);
+    border: 2px solid #9a6d3a;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.22),
+      inset 0 2px 2px rgba(255,255,255,0.2);
+  }
+
+  .stone-preview.marker-brick::after,
+  .stone.marker-brick::after {
+    inset: 5px 4px;
+    border-radius: 4px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.18), transparent 42%),
+      repeating-linear-gradient(90deg, transparent 0 11px, rgba(70, 32, 14, 0.22) 11px 13px);
+    mix-blend-mode: multiply;
+  }
+
+  .stone-preview.marker-stick,
+  .stone.marker-stick {
+    border-radius: 999px;
+  }
+
+  .stone.marker-stick {
+    inset: auto;
+    width: 16px;
+    height: 36px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(24deg);
+  }
+
+  .stone-preview.marker-stick {
+    width: 16px;
+    height: 30px;
+    margin-left: 6px;
+    transform: rotate(24deg);
+  }
+
+  .stone-preview.marker-stick.black,
+  .stone.marker-stick.black {
+    background:
+      linear-gradient(90deg, #4a2b16 0%, #83502c 28%, #5f381e 62%, #3b2315 100%);
+    border: 2px solid #2a180f;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.28),
+      inset 0 2px 2px rgba(255,255,255,0.1);
+  }
+
+  .stone-preview.marker-stick.white,
+  .stone.marker-stick.white {
+    background:
+      linear-gradient(90deg, #d5ba8f 0%, #f0dab5 28%, #d1ab74 62%, #b68b54 100%);
+    border: 2px solid #8d6a3f;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.22),
+      inset 0 2px 2px rgba(255,255,255,0.16);
+  }
+
+  .stone-preview.marker-stick::after,
+  .stone.marker-stick::after {
+    inset: 4px 3px;
+    border-radius: 999px;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0 4px, rgba(0,0,0,0.06) 4px 8px);
+  }
+
+  .player-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .player-meta .name {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .player-meta .desc {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .player-count {
+    margin-left: auto;
+    font: 700 18px "Press Start 2P", monospace;
+    color: #fbe087;
+  }
+
+  .message-box {
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .message-box .main {
+    font-size: 17px;
+    line-height: 1.6;
+    font-weight: 700;
+  }
+
+  .message-box .sub {
+    color: var(--muted);
+    line-height: 1.7;
+    font-size: 13px;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .board-panel {
+    padding: 22px;
+  }
+
+  .board-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .board-header h2 {
+    font-size: 18px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .pill strong {
+    color: var(--text);
+  }
+
+  .board-wrap {
+    position: relative;
+    width: min(100%, 740px);
+    margin: 0 auto;
+    padding: 26px 20px 44px 44px;
+  }
+
+  .board-shell {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    border-radius: 28px;
+    background: var(--board-bg);
+    box-shadow:
+      inset 0 3px 0 rgba(255, 240, 215, 0.2),
+      inset 0 -16px 30px rgba(47, 22, 4, 0.28),
+      0 24px 36px var(--board-shadow);
+    overflow: hidden;
+  }
+
+  .board-shell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--board-overlay);
+    pointer-events: none;
+  }
+
+  .board-svg,
+  .point-layer {
+    position: absolute;
+    inset: 0;
+  }
+
+  .axis-label {
+    position: absolute;
+    color: rgba(255, 246, 213, 0.95);
+    font: 700 13px "Noto Sans SC", sans-serif;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  }
+
+  .axis-label.x {
+    bottom: 10px;
+    transform: translateX(-50%);
+  }
+
+  .axis-label.y {
+    left: 10px;
+    transform: translateY(50%);
+  }
+
+  .point {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    justify-content: center;
+    transition: transform 0.16s ease, filter 0.16s ease;
+  }
+
+  .point::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(60, 33, 9, 0.88);
+    box-shadow: 0 0 0 3px rgba(124, 76, 30, 0.18);
+    transition: all 0.16s ease;
+  }
+
+  .point.playable::before {
+    width: 18px;
+    height: 18px;
+    background: rgba(250, 240, 212, 0.52);
+    box-shadow: 0 0 0 7px rgba(125, 211, 252, 0.12);
+  }
+
+  .point.valid-move::before {
+    width: 16px;
+    height: 16px;
+    background: rgba(110, 231, 183, 0.78);
+    box-shadow: 0 0 0 8px rgba(110, 231, 183, 0.14);
+  }
+
+  .point.capture-target {
+    animation: captureGlow 0.8s ease-in-out infinite alternate;
+  }
+
+  .point.capture-target::before {
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 60, 60, 0.9);
+    box-shadow: 0 0 0 8px rgba(255, 60, 60, 0.25);
+  }
+
+  .point.capture-target .stone {
+    box-shadow:
+      0 0 0 4px rgba(255, 50, 50, 0.85),
+      0 0 16px 4px rgba(255, 50, 50, 0.5),
+      0 0 28px 8px rgba(255, 30, 30, 0.25);
+  }
+
+  @keyframes captureGlow {
+    0% { filter: brightness(1) drop-shadow(0 0 6px rgba(255, 50, 50, 0.6)); }
+    100% { filter: brightness(1.08) drop-shadow(0 0 14px rgba(255, 50, 50, 0.9)); }
+  }
+
+  .point:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+    filter: brightness(1.05);
+  }
+
+  .point.selected {
+    filter: drop-shadow(0 0 10px rgba(125, 211, 252, 0.8));
+  }
+
+  .point.selected::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border-radius: 50%;
+    border: 2px solid rgba(125, 211, 252, 0.92);
+  }
+
+  .stone {
+    position: absolute;
+    inset: 4px;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.35),
+      inset 0 2px 2px rgba(255, 255, 255, 0.08);
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+
+  .legend-dot.place { background: rgba(250, 240, 212, 0.68); }
+  .legend-dot.move { background: rgba(110, 231, 183, 0.78); }
+  .legend-dot.capture { background: rgba(255, 50, 50, 0.9); box-shadow: 0 0 6px rgba(255, 50, 50, 0.5); }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 360px;
+    overflow: auto;
+    padding-right: 4px;
+  }
+
+  .history-item {
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--soft-block);
+    border: 1px solid rgba(170, 191, 236, 0.08);
+  }
+
+  .history-item .title {
+    font-weight: 700;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+
+  .history-item .detail {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .rules-list {
+    display: grid;
+    gap: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+    font-size: 13px;
+  }
+
+  .rules-list strong {
+    color: var(--text);
+  }
+
+  .footer-note {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 1160px) {
+    .layout {
+      grid-template-columns: 1fr;
+    }
+
+    .board-wrap {
+      width: min(100%, 680px);
+    }
+  }
+
+  @media (max-width: 700px) {
+    body {
+      padding: 8px;
+    }
+
+    .header,
+    .panel,
+    .board-panel {
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .title-wrap h1 {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .title-wrap p {
+      font-size: 12px;
+    }
+
+    .header-actions {
+      justify-content: stretch;
+      gap: 6px;
+    }
+
+    .header-actions > * {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .segmented button {
+      padding: 10px 10px;
+      font-size: 12px;
+    }
+
+    .btn {
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    .controls-grid,
+    .status-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .stat .label {
+      font-size: 11px;
+    }
+
+    .stat .value {
+      font-size: 13px;
+    }
+
+    .board-wrap {
+      padding: 16px 10px 32px 28px;
+    }
+
+    .board-shell {
+      border-radius: 16px;
+    }
+
+    .point {
+      width: 44px;
+      height: 44px;
+    }
+
+    .stone-preview,
+    .stone {
+      width: 28px;
+      height: 28px;
+    }
+
+    .axis-label {
+      font-size: 11px;
+    }
+
+    .axis-label.x {
+      bottom: 4px;
+    }
+
+    .axis-label.y {
+      left: 4px;
+    }
+
+    .message-card {
+      padding: 14px;
+    }
+
+    .message-card .main {
+      font-size: 16px;
+    }
+
+    .message-card .sub {
+      font-size: 12px;
+    }
+
+    .players-row {
+      gap: 8px;
+    }
+
+    .player-card {
+      padding: 10px;
+      border-radius: 14px;
+    }
+
+    .history-item {
+      padding: 8px;
+    }
+
+    .footer-note {
+      font-size: 11px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    body {
+      padding: 4px;
+    }
+
+    .header,
+    .panel,
+    .board-panel {
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .segmented button {
+      padding: 8px 7px;
+      font-size: 11px;
+    }
+
+    .btn {
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+
+    .board-wrap {
+      padding: 10px 6px 26px 22px;
+    }
+
+    .point {
+      width: 40px;
+      height: 40px;
+    }
+
+    .stone-preview,
+    .stone {
+      width: 24px;
+      height: 24px;
+    }
+
+    .controls-grid,
+    .status-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="title-wrap">
+      <h1>下 方</h1>
+      <p>支持 5 道方 / 6 道方，本地双人对弈。落子阶段合住连下，走子阶段合住吃子，并带“一步来回不重复算合住”以及“走子、拿子都不能把对手堵死”的限制。</p>
+    </div>
+    <div class="header-actions">
+      <div class="segmented" id="modeSwitch">
+        <button type="button" data-mode="pvp">双人</button>
+        <button type="button" data-mode="ai">VS AI</button>
+      </div>
+      <div class="segmented" id="aiSideSwitch">
+        <button type="button" data-ai-player="1">AI 黑方</button>
+        <button type="button" data-ai-player="2">AI 白方</button>
+      </div>
+      <div class="segmented" id="difficultySwitch">
+        <button type="button" data-difficulty="easy">简单</button>
+        <button type="button" data-difficulty="medium">中等</button>
+        <button type="button" data-difficulty="hard">困难</button>
+      </div>
+      <div class="segmented" id="sizeSwitch">
+        <button type="button" data-size="5">5道方</button>
+        <button type="button" data-size="6">6道方</button>
+      </div>
+      <div class="segmented" id="markerSwitch">
+        <button type="button" data-style="pebble">石子</button>
+        <button type="button" data-style="brick">砖块</button>
+        <button type="button" data-style="stick">木棍</button>
+      </div>
+      <div class="segmented" id="sceneSwitch">
+        <button type="button" data-scene="yard">土院子</button>
+        <button type="button" data-scene="concrete">水泥地</button>
+        <button type="button" data-scene="wood">树荫下</button>
+      </div>
+      <button class="btn primary" type="button" id="restartBtn">重新开局</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel">
+      <section class="card">
+        <h2>当前状态</h2>
+        <div class="status-grid">
+          <div class="stat">
+            <div class="label">阶段</div>
+            <div class="value" id="phaseValue"></div>
+          </div>
+          <div class="stat">
+            <div class="label">当前行动</div>
+            <div class="value" id="turnValue"></div>
+          </div>
+          <div class="stat">
+            <div class="label">待下 / 待吃</div>
+            <div class="value" id="pendingValue"></div>
+          </div>
+          <div class="stat">
+            <div class="label">上次合住</div>
+            <div class="value" id="comboValue"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>棋手</h2>
+        <div class="player-card" id="playerBlack">
+          <div class="stone-preview black" id="blackPreview"></div>
+          <div class="player-meta">
+            <div class="name">黑方</div>
+            <div class="desc" id="blackDesc">先手落子</div>
+          </div>
+          <div class="player-count" id="blackCount">0</div>
+        </div>
+        <div class="player-card" id="playerWhite" style="margin-top: 10px;">
+          <div class="stone-preview white" id="whitePreview"></div>
+          <div class="player-meta">
+            <div class="name">白方</div>
+            <div class="desc" id="whiteDesc">后手落子 / 先手走子</div>
+          </div>
+          <div class="player-count" id="whiteCount">0</div>
+        </div>
+      </section>
+
+      <section class="card message-box">
+        <div class="main" id="messageMain"></div>
+        <div class="sub" id="messageSub"></div>
+      </section>
+
+      <section class="card">
+        <h2>对局操作</h2>
+        <div class="controls-grid">
+          <button class="btn" type="button" id="undoSelectBtn">取消选中</button>
+          <button class="btn primary" type="button" id="restartBtnInline">重新开局</button>
+          <button class="btn danger" type="button" id="resignBlackBtn">黑方认输</button>
+          <button class="btn danger" type="button" id="resignWhiteBtn">白方认输</button>
+        </div>
+      </section>
+    </aside>
+
+    <section class="board-panel">
+      <div class="board-header">
+        <h2 id="boardTitle">5道方棋盘</h2>
+        <div class="pill"><span>坐标系</span><strong>左下角为 (0,0)</strong></div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board-shell" id="boardShell">
+          <svg class="board-svg" id="boardSvg" aria-hidden="true"></svg>
+          <div class="point-layer" id="pointLayer"></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot place"></span><span>当前可落子</span></div>
+        <div class="legend-item"><span class="legend-dot move"></span><span>当前可走位</span></div>
+        <div class="legend-item"><span class="legend-dot capture"></span><span>当前可拿子</span></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>最近记录</h2>
+        <div class="history-list" id="historyList"></div>
+      </section>
+
+      <section class="card">
+        <h2>规则摘要</h2>
+        <div class="rules-list">
+          <div><strong>落子阶段：</strong>轮流下子，合住后奖励额外落子数，多个方 / 斜 / 成龙同时成立时奖励叠加。</div>
+          <div><strong>走子阶段：</strong>棋盘下满后，双方先各拿掉对方一个子，随后由后手先走。每次只能上下左右走到相邻空位；无论走子还是拿子，都不能把对手堵到完全无路可走。</div>
+          <div><strong>吃子奖励：</strong>走子后若合住，奖励不再是继续下子，而是立刻拿掉对方同等数量的棋子。</div>
+          <div><strong>防刷限制：</strong>同一颗子刚在某点合住，下一次若直接走开再立刻走回，该点上次形成过的合住不重复计奖；多绕一步后再回来则可以重新算。</div>
+          <div><strong>对角线：</strong>统计整条边界到边界的斜线；三斜 / 四斜奖励 +1，长度达到 5 及以上的斜线奖励 +2。</div>
+        </div>
+      </section>
+
+      <section class="card footer-note">
+        当前版本先按你刚描述的民间玩法实现：5道方与6道方共用同一套奖励映射。后续如果你们那边还有“堵死判非法”“某些斜线不算”等细节，可以继续往里补。
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script>
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = 2;
+
+const PLAYER_META = {
+  [BLACK]: { name: "黑方", short: "黑", cls: "black" },
+  [WHITE]: { name: "白方", short: "白", cls: "white" },
+};
+
+const NUMBER_WORD = {
+  3: "三",
+  4: "四",
+  5: "五",
+  6: "六",
+  7: "七",
+  8: "八",
+};
+
+const MARKER_STYLES = {
+  pebble: "石子",
+  brick: "砖块",
+  stick: "木棍",
+};
+
+const SCENE_STYLES = {
+  yard: "土院子",
+  concrete: "水泥地",
+  wood: "树荫下",
+};
+
+const AI_DIFFICULTY = {
+  easy:   { label: "简单", placementDepth: 2, randomChance: 0, blockWeight: 10, threatWeight: 10,  chainWeight: 18, replyWeight: 0.6, moveDepth: 1, synergyWeight: 3  },
+  medium: { label: "中等", placementDepth: 3, randomChance: 0, blockWeight: 18, threatWeight: 16,  chainWeight: 26, replyWeight: 1.0, moveDepth: 2, synergyWeight: 5  },
+  hard:   { label: "困难", placementDepth: 4, randomChance: 0, blockWeight: 28, threatWeight: 24,  chainWeight: 36, replyWeight: 1.5, moveDepth: 3, synergyWeight: 10 },
+};
+
+const patternCache = new Map();
+
+let state = createInitialState(5);
+let aiTimer = null;
+let audioCtx = null;
+
+function createInitialState(size, markerStyle = "pebble", sceneStyle = "yard", vsAI = false, aiPlayer = WHITE, aiDifficulty = "medium") {
+  return {
+    size,
+    markerStyle,
+    sceneStyle,
+    vsAI,
+    aiPlayer,
+    aiDifficulty,
+    aiThinking: false,
+    board: Array.from({ length: size }, () => Array(size).fill(null)),
+    pieces: {},
+    nextPieceId: 1,
+    phase: "placement",
+    currentPlayer: BLACK,
+    firstPlayer: BLACK,
+    secondPlayer: WHITE,
+    pendingPlacements: 1,
+    pendingCaptures: 0,
+    selectedPieceId: null,
+    winner: null,
+    lastComboText: "暂无",
+    messageMain: "黑方先落子",
+    messageSub: "点击任意空点落子。若合住，则奖励的子数会继续由当前玩家立刻落下。",
+    history: [],
+  };
+}
+
+function otherPlayer(player) {
+  return player === BLACK ? WHITE : BLACK;
+}
+
+function playerName(player) {
+  return PLAYER_META[player].name;
+}
+
+function displayPlayerName(player) {
+  if (state.vsAI && state.aiPlayer === player) {
+    return `${playerName(player)}（AI）`;
+  }
+  return playerName(player);
+}
+
+function difficultyLabel() {
+  return AI_DIFFICULTY[state.aiDifficulty].label;
+}
+
+function clearAITimer() {
+  if (aiTimer) {
+    clearTimeout(aiTimer);
+    aiTimer = null;
+  }
+}
+
+function ensureAudioContext() {
+  if (audioCtx) return audioCtx;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  audioCtx = new AudioContextClass();
+  return audioCtx;
+}
+
+function unlockAudio() {
+  const ctx = ensureAudioContext();
+  if (!ctx) return;
+  if (ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+}
+
+function playTone({ frequency, duration = 0.08, type = "sine", gain = 0.03, startOffset = 0 }) {
+  const ctx = ensureAudioContext();
+  if (!ctx || ctx.state !== "running") return;
+
+  const now = ctx.currentTime + startOffset;
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(frequency, now);
+  amp.gain.setValueAtTime(0.0001, now);
+  amp.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+  amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  osc.connect(amp);
+  amp.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + duration + 0.02);
+}
+
+function playPlaceSound() {
+  playTone({ frequency: 520, duration: 0.06, type: "triangle", gain: 0.025 });
+}
+
+function playMoveSound() {
+  playTone({ frequency: 330, duration: 0.05, type: "triangle", gain: 0.02 });
+  playTone({ frequency: 415, duration: 0.06, type: "triangle", gain: 0.018, startOffset: 0.045 });
+}
+
+function playCaptureSound() {
+  playTone({ frequency: 210, duration: 0.08, type: "square", gain: 0.035 });
+  playTone({ frequency: 150, duration: 0.1, type: "square", gain: 0.028, startOffset: 0.05 });
+}
+
+function isAITurn() {
+  return state.vsAI && state.currentPlayer === state.aiPlayer;
+}
+
+function countPieces(player) {
+  return Object.values(state.pieces).filter(piece => piece.owner === player).length;
+}
+
+function cloneBoard(board) {
+  return board.map(row => row.slice());
+}
+
+function ownerAt(board, x, y) {
+  const pieceId = board[y][x];
+  if (!pieceId) return EMPTY;
+  return state.pieces[pieceId].owner;
+}
+
+function boardIsFull() {
+  return state.board.every(row => row.every(Boolean));
+}
+
+function coordText(x, y) {
+  return `(${x},${y})`;
+}
+
+function getPatterns(size) {
+  if (patternCache.has(size)) {
+    return patternCache.get(size);
+  }
+
+  const patterns = [];
+
+  for (let y = 0; y < size - 1; y++) {
+    for (let x = 0; x < size - 1; x++) {
+      patterns.push({
+        id: `square-${x}-${y}`,
+        type: "square",
+        reward: 1,
+        name: "方",
+        cells: [
+          { x, y },
+          { x: x + 1, y },
+          { x, y: y + 1 },
+          { x: x + 1, y: y + 1 },
+        ],
+      });
+    }
+  }
+
+  for (let y = 0; y < size; y++) {
+    patterns.push({
+      id: `dragon-row-${y}`,
+      type: "dragon",
+      reward: 2,
+      name: "成龙",
+      cells: Array.from({ length: size }, (_, x) => ({ x, y })),
+    });
+  }
+
+  for (let x = 0; x < size; x++) {
+    patterns.push({
+      id: `dragon-col-${x}`,
+      type: "dragon",
+      reward: 2,
+      name: "成龙",
+      cells: Array.from({ length: size }, (_, y) => ({ x, y })),
+    });
+  }
+
+  const addDiagonal = (startX, startY, stepX, stepY, labelPrefix) => {
+    const cells = [];
+    let x = startX;
+    let y = startY;
+    while (x >= 0 && x < size && y >= 0 && y < size) {
+      cells.push({ x, y });
+      x += stepX;
+      y += stepY;
+    }
+
+    if (cells.length < 3) return;
+
+    const len = cells.length;
+    const word = NUMBER_WORD[len] || String(len);
+    patterns.push({
+      id: `${labelPrefix}-${startX}-${startY}-${len}`,
+      type: "diagonal",
+      reward: len >= 6 ? 3 : len >= 5 ? 2 : 1,
+      name: `${word}斜`,
+      cells,
+    });
+  };
+
+  for (let x = 0; x < size; x++) {
+    addDiagonal(x, 0, 1, 1, "diag-up");
+  }
+  for (let y = 1; y < size; y++) {
+    addDiagonal(0, y, 1, 1, "diag-up");
+  }
+  for (let x = 0; x < size; x++) {
+    addDiagonal(x, size - 1, 1, -1, "diag-down");
+  }
+  for (let y = size - 2; y >= 0; y--) {
+    addDiagonal(0, y, 1, -1, "diag-down");
+  }
+
+  patternCache.set(size, patterns);
+  return patterns;
+}
+
+function patternOwnedBy(board, pattern, player) {
+  return pattern.cells.every(cell => ownerAt(board, cell.x, cell.y) === player);
+}
+
+function detectNewPatterns(beforeBoard, afterBoard, player) {
+  return getPatterns(state.size).filter(pattern => {
+    return !patternOwnedBy(beforeBoard, pattern, player) && patternOwnedBy(afterBoard, pattern, player);
+  });
+}
+
+function summarizePatterns(patterns) {
+  if (!patterns.length) return "无";
+  const counts = new Map();
+  patterns.forEach(pattern => {
+    counts.set(pattern.name, (counts.get(pattern.name) || 0) + 1);
+  });
+  return Array.from(counts.entries()).map(([name, count]) => count > 1 ? `${name} x${count}` : name).join(" + ");
+}
+
+function rewardTotal(patterns) {
+  return patterns.reduce((total, pattern) => total + pattern.reward, 0);
+}
+
+function createPiece(owner, x, y) {
+  const piece = {
+    id: state.nextPieceId++,
+    owner,
+    x,
+    y,
+    prevArrival: null,
+    lastArrival: null,
+  };
+  return piece;
+}
+
+function updateArrival(piece, x, y, awardedPatternIds) {
+  piece.prevArrival = piece.lastArrival ? {
+    cell: { ...piece.lastArrival.cell },
+    patternIds: [...piece.lastArrival.patternIds],
+  } : null;
+  piece.lastArrival = {
+    cell: { x, y },
+    patternIds: [...awardedPatternIds],
+  };
+}
+
+function filterImmediateRepeat(piece, source, target, patterns) {
+  if (!piece.prevArrival || !piece.lastArrival) {
+    return { patterns, blockedNames: [] };
+  }
+
+  const isImmediateReturn =
+    piece.prevArrival.cell.x === target.x &&
+    piece.prevArrival.cell.y === target.y &&
+    piece.lastArrival.cell.x === source.x &&
+    piece.lastArrival.cell.y === source.y;
+
+  if (!isImmediateReturn) {
+    return { patterns, blockedNames: [] };
+  }
+
+  const blockedIds = new Set(piece.prevArrival.patternIds);
+  if (blockedIds.size === 0) {
+    return { patterns, blockedNames: [] };
+  }
+
+  const blockedNames = [];
+  const filtered = patterns.filter(pattern => {
+    if (blockedIds.has(pattern.id)) {
+      blockedNames.push(pattern.name);
+      return false;
+    }
+    return true;
+  });
+
+  return { patterns: filtered, blockedNames };
+}
+
+function addHistory(title, detail) {
+  state.history.unshift({ title, detail });
+  state.history = state.history.slice(0, 18);
+}
+
+function setCombo(patterns, blockedNames = []) {
+  if (!patterns.length && !blockedNames.length) {
+    state.lastComboText = "无";
+    return;
+  }
+
+  const effective = patterns.length ? summarizePatterns(patterns) : "无";
+  if (!blockedNames.length) {
+    state.lastComboText = effective;
+    return;
+  }
+
+  const blockedSummary = summarizePatterns(blockedNames.map(name => ({ name })));
+  state.lastComboText = `${effective}（回跳不计：${blockedSummary}）`;
+}
+
+function removePiece(pieceId) {
+  const piece = state.pieces[pieceId];
+  if (!piece) return null;
+  state.board[piece.y][piece.x] = null;
+  delete state.pieces[pieceId];
+  if (state.selectedPieceId === pieceId) {
+    state.selectedPieceId = null;
+  }
+  return piece;
+}
+
+function canPlayerMoveOnBoard(player, board = state.board, pieces = state.pieces, size = state.size) {
+  return Object.values(pieces).some(piece => {
+    if (piece.owner !== player) return false;
+    const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ];
+    return dirs.some(([dx, dy]) => {
+      const x = piece.x + dx;
+      const y = piece.y + dy;
+      return x >= 0 && x < size && y >= 0 && y < size && !board[y][x];
+    });
+  });
+}
+
+function violatesNoBlockRule(piece, target, board = state.board, pieces = state.pieces, size = state.size) {
+  const opponent = otherPlayer(piece.owner);
+  const opponentPieces = Object.values(pieces).filter(item => item.owner === opponent);
+  if (opponentPieces.length === 0) return false;
+
+  const nextBoard = cloneBoard(board);
+  nextBoard[piece.y][piece.x] = null;
+  nextBoard[target.y][target.x] = piece.id;
+
+  const nextPieces = {
+    ...pieces,
+    [piece.id]: {
+      ...piece,
+      x: target.x,
+      y: target.y,
+    },
+  };
+
+  return !canPlayerMoveOnBoard(opponent, nextBoard, nextPieces, size);
+}
+
+function captureViolatesNoBlockRule(targetPiece, board = state.board, pieces = state.pieces, size = state.size) {
+  const nextBoard = cloneBoard(board);
+  nextBoard[targetPiece.y][targetPiece.x] = null;
+
+  const nextPieces = { ...pieces };
+  delete nextPieces[targetPiece.id];
+
+  const remainingOpponentPieces = Object.values(nextPieces).filter(piece => piece.owner === targetPiece.owner);
+  if (remainingOpponentPieces.length === 0) return false;
+
+  return !canPlayerMoveOnBoard(targetPiece.owner, nextBoard, nextPieces, size);
+}
+
+function getLegalCaptureTargets(player = state.currentPlayer, board = state.board, pieces = state.pieces, size = state.size) {
+  const targetPlayer = otherPlayer(player);
+  return Object.values(pieces)
+    .filter(piece => piece.owner === targetPlayer)
+    .filter(piece => !captureViolatesNoBlockRule(piece, board, pieces, size));
+}
+
+function getPieceMoves(pieceId, board = state.board, pieces = state.pieces, size = state.size, enforceNoBlock = state.phase === "movement") {
+  const piece = pieces[pieceId];
+  if (!piece) return [];
+  const dirs = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+
+  return dirs
+    .map(([dx, dy]) => ({ x: piece.x + dx, y: piece.y + dy }))
+    .filter(pos =>
+      pos.x >= 0 &&
+      pos.x < size &&
+      pos.y >= 0 &&
+      pos.y < size &&
+      !board[pos.y][pos.x] &&
+      (!enforceNoBlock || !violatesNoBlockRule(piece, pos, board, pieces, size))
+    );
+}
+
+function getAllMoves(player, board = state.board, pieces = state.pieces, size = state.size, enforceNoBlock = state.phase === "movement") {
+  return Object.values(pieces)
+    .filter(piece => piece.owner === player)
+    .flatMap(piece => getPieceMoves(piece.id, board, pieces, size, enforceNoBlock).map(target => ({ pieceId: piece.id, target })));
+}
+
+function getOwnerBoard() {
+  return state.board.map(row => row.map(pieceId => pieceId ? state.pieces[pieceId].owner : EMPTY));
+}
+
+function cloneOwnerBoard(ownerBoard) {
+  return ownerBoard.map(row => row.slice());
+}
+
+function ownerAtOnBoard(ownerBoard, x, y) {
+  return ownerBoard[y][x];
+}
+
+function patternOwnedByOnBoard(ownerBoard, pattern, player) {
+  return pattern.cells.every(cell => ownerAtOnBoard(ownerBoard, cell.x, cell.y) === player);
+}
+
+function detectNewPatternsOnBoard(beforeBoard, afterBoard, player, size = state.size) {
+  return getPatterns(size).filter(pattern =>
+    !patternOwnedByOnBoard(beforeBoard, pattern, player) && patternOwnedByOnBoard(afterBoard, pattern, player)
+  );
+}
+
+function getEmptyCells(ownerBoard) {
+  const cells = [];
+  for (let y = 0; y < ownerBoard.length; y++) {
+    for (let x = 0; x < ownerBoard.length; x++) {
+      if (ownerBoard[y][x] === EMPTY) {
+        cells.push({ x, y });
+      }
+    }
+  }
+  return cells;
+}
+
+function getCenterBias(x, y, size = state.size) {
+  const center = (size - 1) / 2;
+  return (size * 2) - (Math.abs(x - center) + Math.abs(y - center)) * 2;
+}
+
+function countOwnedPatternsContaining(ownerBoard, player, x, y, size = state.size) {
+  return getPatterns(size).reduce((total, pattern) => {
+    const touches = pattern.cells.some(cell => cell.x === x && cell.y === y);
+    return touches && patternOwnedByOnBoard(ownerBoard, pattern, player) ? total + pattern.reward * 4 + pattern.cells.length : total;
+  }, 0);
+}
+
+function countThreatPatternsContaining(ownerBoard, player, x, y, size = state.size) {
+  const opponent = otherPlayer(player);
+  return getPatterns(size).reduce((total, pattern) => {
+    if (!pattern.cells.some(cell => cell.x === x && cell.y === y)) return total;
+    let mine = 0;
+    let enemy = 0;
+    for (const cell of pattern.cells) {
+      const owner = ownerAtOnBoard(ownerBoard, cell.x, cell.y);
+      if (owner === player) mine++;
+      else if (owner === opponent) enemy++;
+    }
+    if (enemy === 0 && mine >= pattern.cells.length - 1) {
+      return total + pattern.reward * 3 + mine;
+    }
+    return total;
+  }, 0);
+}
+
+function simulatePlacementOnBoard(ownerBoard, x, y, player, size = state.size) {
+  const beforeBoard = cloneOwnerBoard(ownerBoard);
+  const afterBoard = cloneOwnerBoard(ownerBoard);
+  afterBoard[y][x] = player;
+  const patterns = detectNewPatternsOnBoard(beforeBoard, afterBoard, player, size);
+  return {
+    board: afterBoard,
+    patterns,
+    reward: rewardTotal(patterns),
+  };
+}
+
+function estimatePlacementContinuation(ownerBoard, player, pending, depth, difficulty, size = state.size) {
+  if (pending <= 0 || depth <= 0) return 0;
+  const empties = getEmptyCells(ownerBoard);
+  if (!empties.length) return 0;
+
+  let best = 0;
+  for (const cell of empties) {
+    const simulation = simulatePlacementOnBoard(ownerBoard, cell.x, cell.y, player, size);
+    const immediate = simulation.reward * difficulty.chainWeight + getCenterBias(cell.x, cell.y, size);
+    const nextPending = pending - 1 + simulation.reward;
+    const continuation = estimatePlacementContinuation(simulation.board, player, nextPending, depth - 1, difficulty, size);
+    best = Math.max(best, immediate + continuation);
+  }
+  return best;
+}
+
+function estimateBestCaptureValue(ownerBoard, targetPlayer, captures, difficulty, size = state.size) {
+  if (captures <= 0) return 0;
+  const scores = Object.values(state.pieces)
+    .filter(piece => piece.owner === targetPlayer)
+    .map(piece => evaluateCaptureTargetScore(ownerBoard, piece, difficulty, size))
+    .sort((a, b) => b - a);
+  return scores.slice(0, captures).reduce((sum, score) => sum + score, 0);
+}
+
+function evaluateCaptureTargetScore(ownerBoard, piece, difficulty, size = state.size) {
+  const ownedBreak = countOwnedPatternsContaining(ownerBoard, piece.owner, piece.x, piece.y, size);
+  const threatBreak = difficulty.replyWeight > 0
+    ? countThreatPatternsContaining(ownerBoard, piece.owner, piece.x, piece.y, size)
+    : 0;
+  return ownedBreak * 2 + threatBreak + getCenterBias(piece.x, piece.y, size);
+}
+
+function estimateOpponentBestMovementReply(ownerBoard, player, difficulty, size = state.size) {
+  let best = 0;
+  for (const piece of Object.values(state.pieces)) {
+    if (piece.owner !== player) continue;
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (const [dx, dy] of dirs) {
+      const target = { x: piece.x + dx, y: piece.y + dy };
+      if (target.x < 0 || target.x >= size || target.y < 0 || target.y >= size) continue;
+      if (ownerAtOnBoard(ownerBoard, target.x, target.y) !== EMPTY) continue;
+      const sim = simulateMovementOnBoard(ownerBoard, piece, target, size);
+      const captureScore = estimateBestCaptureValue(sim.board, otherPlayer(player), sim.reward, difficulty, size);
+      best = Math.max(best, sim.reward * 20 + captureScore + getCenterBias(target.x, target.y, size));
+    }
+  }
+  return best;
+}
+
+function simulateMovementOnBoard(ownerBoard, piece, target, size = state.size) {
+  const beforeBoard = cloneOwnerBoard(ownerBoard);
+  const afterBoard = cloneOwnerBoard(ownerBoard);
+  afterBoard[piece.y][piece.x] = EMPTY;
+  afterBoard[target.y][target.x] = piece.owner;
+  const detected = detectNewPatternsOnBoard(beforeBoard, afterBoard, piece.owner, size);
+  const filtered = filterImmediateRepeat(piece, { x: piece.x, y: piece.y }, target, detected);
+  return {
+    board: afterBoard,
+    patterns: filtered.patterns,
+    blockedNames: filtered.blockedNames,
+    reward: rewardTotal(filtered.patterns),
+  };
+}
+
+function chooseAICandidate(candidates, difficulty) {
+  if (!candidates.length) return null;
+  const sorted = [...candidates].sort((a, b) => b.score - a.score);
+  if (difficulty.randomChance > 0 && Math.random() < difficulty.randomChance) {
+    const topCount = Math.min(3, sorted.length);
+    return sorted[Math.floor(Math.random() * topCount)];
+  }
+  return sorted[0];
+}
+
+function aiPickPlacement() {
+  const ownerBoard = getOwnerBoard();
+  const difficulty = AI_DIFFICULTY[state.aiDifficulty];
+  const size = state.size;
+  const candidates = getEmptyCells(ownerBoard).map(cell => {
+    const simulation = simulatePlacementOnBoard(ownerBoard, cell.x, cell.y, state.aiPlayer, size);
+    const chainValue = simulation.reward > 0
+      ? estimatePlacementContinuation(simulation.board, state.aiPlayer, simulation.reward, difficulty.placementDepth, difficulty, size)
+      : 0;
+    const score =
+      simulation.reward * 24 +
+      simulation.patterns.length * 8 +
+      getCenterBias(cell.x, cell.y, size) +
+      chainValue;
+    return { x: cell.x, y: cell.y, score };
+  });
+  return chooseAICandidate(candidates, difficulty);
+}
+
+function aiPickCaptureTarget() {
+  const ownerBoard = getOwnerBoard();
+  const difficulty = AI_DIFFICULTY[state.aiDifficulty];
+  const targetPlayer = otherPlayer(state.aiPlayer);
+  const candidates = Object.values(state.pieces)
+    .filter(piece => piece.owner === targetPlayer)
+    .map(piece => ({
+      pieceId: piece.id,
+      score: evaluateCaptureTargetScore(ownerBoard, piece, difficulty),
+    }));
+  const choice = chooseAICandidate(candidates, difficulty);
+  return choice ? choice.pieceId : null;
+}
+
+function aiPickMovement() {
+  const ownerBoard = getOwnerBoard();
+  const difficulty = AI_DIFFICULTY[state.aiDifficulty];
+  const candidates = getAllMoves(state.aiPlayer).map(({ pieceId, target }) => {
+    const piece = state.pieces[pieceId];
+    const simulation = simulateMovementOnBoard(ownerBoard, piece, target, state.size);
+    const captureValue = estimateBestCaptureValue(simulation.board, otherPlayer(state.aiPlayer), simulation.reward, difficulty, state.size);
+    const replyPenalty = difficulty.replyWeight > 0
+      ? estimateOpponentBestMovementReply(simulation.board, otherPlayer(state.aiPlayer), difficulty, state.size)
+      : 0;
+    const score =
+      simulation.reward * 26 +
+      captureValue +
+      getCenterBias(target.x, target.y, state.size) * 1.5 -
+      replyPenalty * difficulty.replyWeight -
+      simulation.blockedNames.length * 3;
+    return {
+      pieceId,
+      target,
+      score,
+    };
+  });
+  return chooseAICandidate(candidates, difficulty);
+}
+
+function performAIAction() {
+  if (!isAITurn() || state.phase === "game-over") return;
+
+  if (state.phase === "placement") {
+    const choice = aiPickPlacement();
+    if (choice) placePiece(choice.x, choice.y);
+    return;
+  }
+
+  if (state.phase === "opening-capture") {
+    const targetId = aiPickCaptureTarget();
+    if (targetId) handleOpeningCapture(targetId);
+    return;
+  }
+
+  if (state.phase === "bonus-capture") {
+    const targetId = aiPickCaptureTarget();
+    if (targetId) handleBonusCapture(targetId);
+    return;
+  }
+
+  if (state.phase === "movement") {
+    const choice = aiPickMovement();
+    if (choice) movePieceTo(choice.pieceId, choice.target.x, choice.target.y);
+  }
+}
+
+function scheduleAI() {
+  if (!state.vsAI || state.phase === "game-over" || !isAITurn() || state.aiThinking || aiTimer) {
+    return;
+  }
+
+  state.aiThinking = true;
+  render();
+  aiTimer = setTimeout(() => {
+    aiTimer = null;
+    state.aiThinking = false;
+    performAIAction();
+  }, 420 + Math.random() * 280);
+}
+
+function maybeAdvanceAfterMovement() {
+  state.selectedPieceId = null;
+  const nextPlayer = otherPlayer(state.currentPlayer);
+  const nextMoves = getAllMoves(nextPlayer);
+
+  if (nextMoves.length > 0) {
+    state.currentPlayer = nextPlayer;
+    state.messageMain = `${playerName(state.currentPlayer)}走子`;
+    state.messageSub = "先点自己的棋子，再点相邻空位移动。若走后合住，立刻拿掉对手对应数量的棋子。";
+    return;
+  }
+
+  const currentMoves = getAllMoves(state.currentPlayer);
+  if (currentMoves.length > 0) {
+    addHistory("自动让手", `${playerName(nextPlayer)} 当前无可走位置，本轮跳过，仍由 ${playerName(state.currentPlayer)} 行动。`);
+    state.messageMain = `${playerName(nextPlayer)}无路可走，自动让手`;
+    state.messageSub = `仍由 ${playerName(state.currentPlayer)} 继续走子。`;
+    return;
+  }
+
+  state.phase = "game-over";
+  state.winner = null;
+  state.messageMain = "双方都无路可走";
+  state.messageSub = "按当前实现判为平局。";
+  addHistory("对局结束", "双方都无路可走，判为平局。");
+}
+
+function ensureCurrentPlayerCanMove() {
+  const moves = getAllMoves(state.currentPlayer);
+  if (moves.length > 0) return;
+
+  const fallback = otherPlayer(state.currentPlayer);
+  const fallbackMoves = getAllMoves(fallback);
+
+  if (fallbackMoves.length > 0) {
+    addHistory("自动让手", `${playerName(state.currentPlayer)} 当前无可走位置，由 ${playerName(fallback)} 先行。`);
+    state.currentPlayer = fallback;
+    state.messageMain = `${playerName(fallback)}走子`;
+    state.messageSub = `${playerName(otherPlayer(fallback))} 当前无路可走，由 ${playerName(fallback)} 先行。`;
+    return;
+  }
+
+  state.phase = "game-over";
+  state.winner = null;
+  state.messageMain = "双方都无路可走";
+  state.messageSub = "按当前实现判为平局。";
+  addHistory("对局结束", "走子阶段开始时双方都无路可走，判为平局。");
+}
+
+function ensureCurrentPlayerCanCapture() {
+  if (state.phase !== "opening-capture" && state.phase !== "bonus-capture") return;
+
+  const legalTargets = getLegalCaptureTargets(state.currentPlayer);
+  if (legalTargets.length > 0) return;
+
+  if (state.phase === "opening-capture") {
+    addHistory("跳过拿子", `${playerName(state.currentPlayer)} 当前没有合法可拿的子，自动跳过。`);
+    if (state.currentPlayer === state.firstPlayer) {
+      state.currentPlayer = state.secondPlayer;
+      state.messageMain = `${playerName(state.currentPlayer)}也要先拿子`;
+      state.messageSub = `按规则不能堵死对手；${playerName(state.firstPlayer)} 本轮无合法拿子，轮到 ${playerName(state.currentPlayer)} 拿子。`;
+      ensureCurrentPlayerCanCapture();
+      return;
+    }
+    enterMovementPhase();
+    return;
+  }
+
+  addHistory("提前结束奖励拿子", `${playerName(state.currentPlayer)} 当前无合法可拿目标，剩余奖励作废。`);
+  state.pendingCaptures = 0;
+  state.phase = "movement";
+  state.messageMain = `${playerName(state.currentPlayer)}本轮结束`;
+  state.messageSub = "奖励拿子因不能堵死对手而提前结束，轮到对方走子。";
+  maybeAdvanceAfterMovement();
+}
+
+function startOpeningCaptures() {
+  state.phase = "opening-capture";
+  state.currentPlayer = state.firstPlayer;
+  state.pendingPlacements = 0;
+  state.pendingCaptures = 1;
+  state.selectedPieceId = null;
+  state.messageMain = `${playerName(state.currentPlayer)}先拿子`;
+  state.messageSub = `棋盘已下满。请先从 ${playerName(otherPlayer(state.currentPlayer))} 那边拿掉 1 个子，随后轮到对方也拿 1 个。`;
+  addHistory("进入走子阶段", "棋盘已满，双方先各拿掉对方一个子，再由后手先走子。");
+  ensureCurrentPlayerCanCapture();
+}
+
+function enterMovementPhase() {
+  state.phase = "movement";
+  state.currentPlayer = state.secondPlayer;
+  state.pendingCaptures = 0;
+  state.selectedPieceId = null;
+  state.messageMain = `${playerName(state.currentPlayer)}先走子`;
+  state.messageSub = "走子阶段开始。只能上下左右走到相邻空位，且不能把对手堵死；合住后奖励改为拿掉对手的子。";
+  ensureCurrentPlayerCanMove();
+}
+
+function endGame(winner, reason) {
+  state.phase = "game-over";
+  state.winner = winner;
+  state.pendingCaptures = 0;
+  state.pendingPlacements = 0;
+  state.selectedPieceId = null;
+  state.messageMain = winner ? `${playerName(winner)}获胜` : "对局结束";
+  state.messageSub = reason;
+  addHistory("对局结束", reason);
+}
+
+function placePiece(x, y) {
+  if (state.phase !== "placement") return;
+  if (state.board[y][x]) return;
+
+  const before = cloneBoard(state.board);
+  const piece = createPiece(state.currentPlayer, x, y);
+  state.pieces[piece.id] = piece;
+  state.board[y][x] = piece.id;
+
+  const patterns = detectNewPatterns(before, state.board, state.currentPlayer);
+  const reward = rewardTotal(patterns);
+  updateArrival(piece, x, y, patterns.map(pattern => pattern.id));
+  setCombo(patterns);
+
+  const actionText = reward > 0
+    ? `落子 ${coordText(x, y)}，合住 ${summarizePatterns(patterns)}，奖励 ${reward} 子`
+    : `落子 ${coordText(x, y)}，未合住`;
+  addHistory(`${playerName(state.currentPlayer)}落子`, actionText);
+  playPlaceSound();
+
+  if (boardIsFull()) {
+    state.messageMain = "棋盘已下满";
+    state.messageSub = reward > 0
+      ? `最后一手在 ${coordText(x, y)} 合住 ${summarizePatterns(patterns)}，但棋盘已满，直接进入走子准备。`
+      : "落子阶段结束，准备进入走子前的互拿阶段。";
+    startOpeningCaptures();
+    render();
+    scheduleAI();
+    return;
+  }
+
+  state.pendingPlacements = state.pendingPlacements - 1 + reward;
+  if (state.pendingPlacements > 0) {
+    state.messageMain = `${playerName(state.currentPlayer)}继续落子`;
+    state.messageSub = reward > 0
+      ? `本手在 ${coordText(x, y)} 合住 ${summarizePatterns(patterns)}，当前还可继续下 ${state.pendingPlacements} 子。`
+      : `本手没有合住，但仍有连下奖励未用完，当前还可继续下 ${state.pendingPlacements} 子。`;
+  } else {
+    state.currentPlayer = otherPlayer(state.currentPlayer);
+    state.pendingPlacements = 1;
+    state.messageMain = `${playerName(state.currentPlayer)}落子`;
+    state.messageSub = "点击任意空点落子。若一子多合，奖励会叠加。";
+  }
+
+  render();
+  scheduleAI();
+}
+
+function handleOpeningCapture(pieceId) {
+  if (state.phase !== "opening-capture") return;
+  const target = state.pieces[pieceId];
+  if (!target || target.owner === state.currentPlayer) return;
+  if (captureViolatesNoBlockRule(target)) {
+    state.messageMain = `${playerName(state.currentPlayer)}这子不能拿`;
+    state.messageSub = "按规则，拿掉这子会把对手堵到完全无路可走。";
+    render();
+    return;
+  }
+
+  const removed = removePiece(pieceId);
+  if (!removed) return;
+
+  setCombo([]);
+  addHistory(`${playerName(state.currentPlayer)}拿子`, `拿掉 ${playerName(removed.owner)} 在 ${coordText(removed.x, removed.y)} 的 1 个子。`);
+  playCaptureSound();
+
+  if (state.currentPlayer === state.firstPlayer) {
+    state.currentPlayer = state.secondPlayer;
+    state.messageMain = `${playerName(state.currentPlayer)}也要先拿子`;
+    state.messageSub = `请从 ${playerName(otherPlayer(state.currentPlayer))} 那边拿掉 1 个子，然后由 ${playerName(state.currentPlayer)} 先开始走子。`;
+    render();
+    scheduleAI();
+    return;
+  }
+
+  enterMovementPhase();
+  render();
+  scheduleAI();
+}
+
+function beginBonusCapture(reward, actionLabel) {
+  state.phase = "bonus-capture";
+  state.pendingCaptures = reward;
+  state.selectedPieceId = null;
+  state.messageMain = `${playerName(state.currentPlayer)}继续拿子`;
+  state.messageSub = `${actionLabel}，现在还要拿掉 ${state.pendingCaptures} 个 ${playerName(otherPlayer(state.currentPlayer))} 的子。`;
+  ensureCurrentPlayerCanCapture();
+}
+
+function movePieceTo(pieceId, x, y) {
+  if (state.phase !== "movement") return;
+
+  const piece = state.pieces[pieceId];
+  if (!piece || piece.owner !== state.currentPlayer) return;
+
+  const legalMoves = getPieceMoves(pieceId);
+  if (!legalMoves.some(pos => pos.x === x && pos.y === y)) {
+    const isAdjacent =
+      Math.abs(piece.x - x) + Math.abs(piece.y - y) === 1 &&
+      x >= 0 &&
+      x < state.size &&
+      y >= 0 &&
+      y < state.size &&
+      !state.board[y][x];
+    if (isAdjacent && violatesNoBlockRule(piece, { x, y })) {
+      state.messageMain = `${playerName(state.currentPlayer)}这步不能走`;
+      state.messageSub = "按规则，不能把对手堵到完全无路可走。";
+      render();
+    }
+    return;
+  }
+
+  const before = cloneBoard(state.board);
+  const source = { x: piece.x, y: piece.y };
+
+  state.board[source.y][source.x] = null;
+  state.board[y][x] = piece.id;
+  piece.x = x;
+  piece.y = y;
+
+  const detected = detectNewPatterns(before, state.board, state.currentPlayer);
+  const { patterns, blockedNames } = filterImmediateRepeat(piece, source, { x, y }, detected);
+  const reward = rewardTotal(patterns);
+  updateArrival(piece, x, y, patterns.map(pattern => pattern.id));
+  setCombo(patterns, blockedNames);
+
+  const comboText = patterns.length ? summarizePatterns(patterns) : "无";
+  const blockedText = blockedNames.length ? `；回跳不计 ${summarizePatterns(blockedNames.map(name => ({ name })))}` : "";
+  addHistory(
+    `${playerName(state.currentPlayer)}走子`,
+    `${coordText(source.x, source.y)} -> ${coordText(x, y)}，合住：${comboText}${blockedText}${reward > 0 ? `，可拿 ${reward} 子` : ""}。`
+  );
+  playMoveSound();
+
+  if (countPieces(otherPlayer(state.currentPlayer)) === 0) {
+    endGame(state.currentPlayer, `${playerName(otherPlayer(state.currentPlayer))} 已无棋可留，${playerName(state.currentPlayer)} 获胜。`);
+    render();
+    return;
+  }
+
+  if (reward > 0) {
+    beginBonusCapture(reward, `本手合住 ${summarizePatterns(patterns)}`);
+  } else {
+    state.messageMain = `${playerName(state.currentPlayer)}此手未合住`;
+    state.messageSub = "该回合不拿子，轮到对方走。";
+    maybeAdvanceAfterMovement();
+  }
+
+  render();
+  scheduleAI();
+}
+
+function handleBonusCapture(pieceId) {
+  if (state.phase !== "bonus-capture") return;
+  const target = state.pieces[pieceId];
+  if (!target || target.owner === state.currentPlayer) return;
+  if (captureViolatesNoBlockRule(target)) {
+    state.messageMain = `${playerName(state.currentPlayer)}这子不能拿`;
+    state.messageSub = "按规则，奖励拿子也不能把对手堵到完全无路可走。";
+    render();
+    return;
+  }
+
+  const removed = removePiece(pieceId);
+  if (!removed) return;
+
+  state.pendingCaptures -= 1;
+  addHistory(`${playerName(state.currentPlayer)}奖励拿子`, `拿掉 ${playerName(removed.owner)} 在 ${coordText(removed.x, removed.y)} 的 1 个子，剩余 ${state.pendingCaptures} 个。`);
+  playCaptureSound();
+
+  if (countPieces(otherPlayer(state.currentPlayer)) === 0) {
+    endGame(state.currentPlayer, `${playerName(state.currentPlayer)} 已把对方棋子全部杀光。`);
+    render();
+    return;
+  }
+
+  if (state.pendingCaptures > 0) {
+    state.messageMain = `${playerName(state.currentPlayer)}继续拿子`;
+    state.messageSub = `奖励尚未用完，还要拿掉 ${state.pendingCaptures} 个 ${playerName(otherPlayer(state.currentPlayer))} 的子。`;
+    ensureCurrentPlayerCanCapture();
+    render();
+    scheduleAI();
+    return;
+  }
+
+  state.phase = "movement";
+  state.messageMain = `${playerName(state.currentPlayer)}本轮结束`;
+  state.messageSub = "奖励拿子已用完，轮到对方走子。";
+  maybeAdvanceAfterMovement();
+  render();
+  scheduleAI();
+}
+
+// ==================== AI Logic ====================
+
+function ownerOnBoard(board, x, y) {
+  const pid = board[y]?.[x];
+  if (!pid) return EMPTY;
+  const p = state.pieces[pid];
+  return p ? p.owner : EMPTY;
+}
+
+function analyzePattern(board, pattern, me, opp) {
+  let mine = 0, theirs = 0, empty = 0;
+  for (const c of pattern.cells) {
+    const o = ownerOnBoard(board, c.x, c.y);
+    if (o === me) mine++;
+    else if (o === opp) theirs++;
+    else empty++;
+  }
+  return { mine, theirs, empty, len: pattern.cells.length };
+}
+
+function simulatePlacement(board, x, y, player, size) {
+  let reward = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(c => c.x === x && c.y === y)) continue;
+    let wasDone = true, nowDone = true;
+    for (const c of pattern.cells) {
+      const o = ownerOnBoard(board, c.x, c.y);
+      if (c.x === x && c.y === y) {
+        if (o !== EMPTY) { wasDone = wasDone && (o === player); }
+        else { wasDone = false; }
+      } else {
+        if (o !== player) { wasDone = false; nowDone = false; }
+      }
+    }
+    if (!wasDone && nowDone) reward += pattern.reward;
+  }
+  return reward;
+}
+
+function simulateChainReward(board, x, y, player, size, depth) {
+  if (depth <= 0) return 0;
+  const reward = simulatePlacement(board, x, y, player, size);
+  if (reward <= 0 || depth <= 1) return reward;
+
+  const fakeId = -(1000 + depth * 10000 + y * 100 + x);
+  const fakeBoard = board.map(r => r.slice());
+  fakeBoard[y][x] = fakeId;
+  const origPieces = state.pieces;
+  state.pieces = { ...origPieces, [fakeId]: { id: fakeId, owner: player, x, y } };
+
+  let bestChain = 0;
+  for (let ny = 0; ny < size; ny++)
+    for (let nx = 0; nx < size; nx++) {
+      if (fakeBoard[ny][nx]) continue;
+      const sub = simulateChainReward(fakeBoard, nx, ny, player, size, depth - 1);
+      if (sub > bestChain) bestChain = sub;
+    }
+
+  state.pieces = origPieces;
+  return reward + bestChain * 0.75;
+}
+
+function countThreatsAt(board, x, y, player, size) {
+  let threats = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(c => c.x === x && c.y === y)) continue;
+    let owned = 0, emp = 0;
+    for (const c of pattern.cells) {
+      if (c.x === x && c.y === y) { owned++; continue; }
+      const o = ownerOnBoard(board, c.x, c.y);
+      if (o === player) owned++;
+      else if (o === EMPTY) emp++;
+    }
+    if (owned === pattern.cells.length - 1 && emp === 1) threats++;
+  }
+  return threats;
+}
+
+function comparePriorityVectors(a, b) {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const av = a[i] ?? 0;
+    const bv = b[i] ?? 0;
+    if (av !== bv) return av - bv;
+  }
+  return 0;
+}
+
+function countImmediateThreatValue(board, player, size) {
+  const opponent = otherPlayer(player);
+  let total = 0;
+  for (const pattern of getPatterns(size)) {
+    const { mine, theirs, empty, len } = analyzePattern(board, pattern, player, opponent);
+    if (theirs === 0 && mine === len - 1 && empty === 1) {
+      total += pattern.reward * 100 + len * 5;
+    }
+  }
+  return total;
+}
+
+function countImmediateBlocksAt(board, x, y, opponent, size) {
+  let total = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(cell => cell.x === x && cell.y === y)) continue;
+    const { mine, theirs, empty, len } = analyzePattern(board, pattern, opponent, otherPlayer(opponent));
+    if (theirs === 0 && mine === len - 1 && empty === 1) {
+      total += pattern.reward * 100 + len * 5;
+    }
+  }
+  return total;
+}
+
+function evaluateSelfFuturePlacement(board, x, y, player, size, difficulty) {
+  const opponent = otherPlayer(player);
+  let total = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(cell => cell.x === x && cell.y === y)) continue;
+
+    let mine = 0;
+    let theirs = 0;
+    for (const cell of pattern.cells) {
+      if (cell.x === x && cell.y === y) continue;
+      const owner = ownerOnBoard(board, cell.x, cell.y);
+      if (owner === player) mine++;
+      else if (owner === opponent) theirs++;
+    }
+
+    if (theirs > 0) continue;
+
+    const mineAfter = mine + 1;
+    const remaining = pattern.cells.length - mineAfter;
+    if (remaining <= 0) continue;
+
+    if (remaining === 1) {
+      total += pattern.reward * difficulty.threatWeight * 12;
+    } else {
+      total += getTempoBuildScore(pattern, mineAfter, remaining, difficulty);
+    }
+  }
+  return total;
+}
+
+function evaluateOpponentFutureSuppression(board, x, y, opponent, size) {
+  let total = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(cell => cell.x === x && cell.y === y)) continue;
+
+    let oppCount = 0;
+    let myCount = 0;
+    for (const cell of pattern.cells) {
+      if (cell.x === x && cell.y === y) continue;
+      const owner = ownerOnBoard(board, cell.x, cell.y);
+      if (owner === opponent) oppCount++;
+      else if (owner === otherPlayer(opponent)) myCount++;
+    }
+
+    if (myCount > 0 || oppCount === 0) continue;
+
+    const oppNeed = pattern.cells.length - oppCount;
+    if (oppNeed === 1) {
+      total += pattern.reward * 100 + pattern.cells.length * 5;
+    } else if (oppNeed === 2) {
+      total += pattern.reward * 24 + pattern.cells.length;
+    } else if (oppNeed === 3) {
+      total += pattern.reward * 8;
+    }
+  }
+  return total;
+}
+
+function getTempoBuildScore(pattern, mineAfter, remaining, difficulty) {
+  if (remaining <= 0) {
+    return pattern.reward * difficulty.chainWeight * 120;
+  }
+
+  let base = 8;
+  if (pattern.type === "diagonal") {
+    if (pattern.cells.length === 3) base = 34;
+    else if (pattern.cells.length === 4) base = 20;
+    else base = 10;
+  } else if (pattern.type === "square") {
+    base = 18;
+  } else if (pattern.type === "dragon") {
+    base = 7;
+  }
+
+  return pattern.reward * base * (mineAfter * mineAfter) / remaining;
+}
+
+function getOpeningPlacementBonus(x, y, size) {
+  if (size === 5) {
+    if ((x === 2 && y === 0) || (x === 0 && y === 2) || (x === 4 && y === 2) || (x === 2 && y === 4)) {
+      return 42;
+    }
+    if ((x === 1 && y === 1) || (x === 1 && y === 3) || (x === 3 && y === 1) || (x === 3 && y === 3)) {
+      return 9;
+    }
+    if (x === 2 && y === 2) {
+      return 5;
+    }
+  }
+  if (size === 6) {
+    if ((x === 2 || x === 3) && (y === 0 || y === 5)) return 24;
+    if ((y === 2 || y === 3) && (x === 0 || x === 5)) return 24;
+    if ((x === 2 || x === 3) && (y === 2 || y === 3)) return 8;
+  }
+  return 0;
+}
+
+function aiPickPlacement() {
+  const diff = AI_DIFFICULTY[state.aiDifficulty];
+  const size = state.size;
+  const me = state.aiPlayer;
+  const opp = otherPlayer(me);
+  const myPieceCount = countPieces(me);
+
+  const empties = [];
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++)
+      if (!state.board[y][x]) empties.push({ x, y });
+  if (!empties.length) return null;
+
+  let bestPriority = null;
+  let bestPos = empties[0];
+
+  for (const { x, y } of empties) {
+    const immediateReward = simulatePlacement(state.board, x, y, me, size);
+    const immediateBlocks = countImmediateBlocksAt(state.board, x, y, opp, size);
+    const selfFuture =
+      evaluateSelfFuturePlacement(state.board, x, y, me, size, diff) +
+      (diff.placementDepth > 0 ? simulateChainReward(state.board, x, y, me, size, diff.placementDepth) * 5 : 0) +
+      (myPieceCount === 0 ? getOpeningPlacementBonus(x, y, size) * diff.synergyWeight : 0);
+    const oppFutureSuppression = evaluateOpponentFutureSuppression(state.board, x, y, opp, size);
+
+    const priority = [
+      immediateReward,
+      immediateBlocks,
+      selfFuture,
+      oppFutureSuppression,
+    ];
+
+    if (
+      !bestPriority ||
+      comparePriorityVectors(priority, bestPriority) > 0 ||
+      (comparePriorityVectors(priority, bestPriority) === 0 && getOpeningPlacementBonus(x, y, size) > getOpeningPlacementBonus(bestPos.x, bestPos.y, size)) ||
+      (comparePriorityVectors(priority, bestPriority) === 0 && x + y < bestPos.x + bestPos.y)
+    ) {
+      bestPriority = priority;
+      bestPos = { x, y };
+    }
+  }
+
+  return bestPos;
+}
+
+function aiPickCapture() {
+  const diff = AI_DIFFICULTY[state.aiDifficulty];
+  const opp = otherPlayer(state.aiPlayer);
+  const me = state.aiPlayer;
+  const size = state.size;
+  const allPatterns = getPatterns(size);
+  const targets = getLegalCaptureTargets(state.aiPlayer);
+  if (!targets.length) return null;
+
+  let bestScore = -Infinity;
+  let bestId = targets[0].id;
+
+  for (const target of targets) {
+    let score = 0;
+
+    for (const pattern of allPatterns) {
+      if (!pattern.cells.some(c => c.x === target.x && c.y === target.y)) continue;
+      const { mine, theirs, empty, len } = analyzePattern(state.board, pattern, opp, me);
+      if (theirs === len) score += pattern.reward * 25;
+      if (theirs === len - 1 && empty === 1) score += pattern.reward * 18;
+      if (mine === 0 && theirs > 1) score += theirs * 3;
+    }
+
+    const savedPid = state.board[target.y][target.x];
+    state.board[target.y][target.x] = null;
+    const savedPiece = state.pieces[target.id];
+    delete state.pieces[target.id];
+
+    let myNewThreats = 0;
+    for (const pattern of allPatterns) {
+      if (!pattern.cells.some(c => c.x === target.x && c.y === target.y)) continue;
+      let myC = 0, empC = 0;
+      for (const c of pattern.cells) {
+        const o = ownerOnBoard(state.board, c.x, c.y);
+        if (o === me) myC++;
+        else if (o === EMPTY) empC++;
+      }
+      if (myC === pattern.cells.length - 1 && empC === 1) myNewThreats++;
+    }
+    score += myNewThreats * 12;
+
+    let oppThreatsRemoved = 0;
+    for (const pattern of allPatterns) {
+      const { mine, theirs, empty, len } = analyzePattern(state.board, pattern, opp, me);
+      if (theirs === len - 1 && empty === 1) oppThreatsRemoved++;
+    }
+
+    state.board[target.y][target.x] = savedPid;
+    state.pieces[target.id] = savedPiece;
+
+    let oppThreatsBefore = 0;
+    for (const pattern of allPatterns) {
+      const { mine, theirs, empty, len } = analyzePattern(state.board, pattern, opp, me);
+      if (theirs === len - 1 && empty === 1) oppThreatsBefore++;
+    }
+    score += (oppThreatsBefore - oppThreatsRemoved) * 10;
+
+    if (
+      score > bestScore ||
+      (score === bestScore && (target.y < state.pieces[bestId].y || (target.y === state.pieces[bestId].y && target.x < state.pieces[bestId].x)))
+    ) {
+      bestScore = score;
+      bestId = target.id;
+    }
+  }
+
+  return bestId;
+}
+
+function quickMoveReward(move, player) {
+  const piece = state.pieces[move.pieceId];
+  const before = cloneBoard(state.board);
+  const source = { x: piece.x, y: piece.y };
+  state.board[piece.y][piece.x] = null;
+  state.board[move.target.y][move.target.x] = piece.id;
+  piece.x = move.target.x;
+  piece.y = move.target.y;
+  const detected = detectNewPatterns(before, state.board, player);
+  const filtered = filterImmediateRepeat(piece, source, move.target, detected);
+  const reward = rewardTotal(filtered.patterns);
+  const threats = countThreatsAt(state.board, move.target.x, move.target.y, player, state.size);
+  piece.x = source.x;
+  piece.y = source.y;
+  state.board[move.target.y][move.target.x] = null;
+  state.board[piece.y][piece.x] = piece.id;
+  return reward * 3 + threats;
+}
+
+function topKMoves(player, k) {
+  const moves = getAllMoves(player);
+  if (moves.length <= k) return moves;
+  const scored = moves.map(m => ({ m, s: quickMoveReward(m, player) }));
+  scored.sort((a, b) => b.s - a.s);
+  return scored.slice(0, k).map(e => e.m);
+}
+
+function moveLookahead(player, depth, alpha) {
+  if (depth <= 0) return 0;
+  const moves = topKMoves(player, 6);
+  let best = 0;
+  for (const move of moves) {
+    const piece = state.pieces[move.pieceId];
+    const sx = piece.x, sy = piece.y;
+    const { x: tx, y: ty } = move.target;
+    const before = cloneBoard(state.board);
+    state.board[sy][sx] = null;
+    state.board[ty][tx] = piece.id;
+    piece.x = tx;
+    piece.y = ty;
+    const detected = detectNewPatterns(before, state.board, player);
+    const filtered = filterImmediateRepeat(piece, { x: sx, y: sy }, { x: tx, y: ty }, detected);
+    let val = rewardTotal(filtered.patterns);
+    val += countThreatsAt(state.board, tx, ty, player, state.size) * 0.3;
+    if (depth > 1) {
+      const oppReply = moveLookahead(otherPlayer(player), depth - 1, best);
+      val -= oppReply * 0.6;
+    }
+    piece.x = sx;
+    piece.y = sy;
+    state.board[ty][tx] = null;
+    state.board[sy][sx] = piece.id;
+    if (val > best) best = val;
+  }
+  return best;
+}
+
+function moveAdvancementScore(board, x, y, player, size) {
+  const opp = otherPlayer(player);
+  let advance = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(c => c.x === x && c.y === y)) continue;
+    let mine = 0, theirs = 0;
+    for (const c of pattern.cells) {
+      if (c.x === x && c.y === y) continue;
+      const o = ownerOnBoard(board, c.x, c.y);
+      if (o === player) mine++;
+      else if (o === opp) theirs++;
+    }
+    if (theirs === 0) {
+      const remaining = pattern.cells.length - mine - 1;
+      if (remaining === 1) advance += pattern.reward * 4;
+      else if (remaining === 0) advance += pattern.reward * 2;
+      else advance += pattern.reward * Math.pow(2, mine) / (remaining * remaining);
+    }
+  }
+  return advance;
+}
+
+function aiPickMovement() {
+  const diff = AI_DIFFICULTY[state.aiDifficulty];
+  const me = state.aiPlayer;
+  const opp = otherPlayer(me);
+  const size = state.size;
+  const moves = getAllMoves(me);
+  if (!moves.length) return null;
+
+  const beforeOppThreatValue = countImmediateThreatValue(state.board, opp, size);
+  let bestPriority = null;
+  let bestMove = moves[0];
+
+  for (const move of moves) {
+    const piece = state.pieces[move.pieceId];
+    const sx = piece.x, sy = piece.y;
+    const { x: tx, y: ty } = move.target;
+
+    const before = cloneBoard(state.board);
+    state.board[sy][sx] = null;
+    state.board[ty][tx] = piece.id;
+    piece.x = tx;
+    piece.y = ty;
+
+    const detected = detectNewPatterns(before, state.board, me);
+    const { patterns } = filterImmediateRepeat(piece, { x: sx, y: sy }, { x: tx, y: ty }, detected);
+    const reward = rewardTotal(patterns);
+    const afterOppThreatValue = countImmediateThreatValue(state.board, opp, size);
+    const blockedImmediate = beforeOppThreatValue - afterOppThreatValue;
+    const selfFuture =
+      countThreatsAt(state.board, tx, ty, me, size) * diff.threatWeight +
+      moveAdvancementScore(state.board, tx, ty, me, size) * diff.synergyWeight * 0.5 -
+      moveAdvancementScore(before, sx, sy, me, size) * diff.synergyWeight * 0.3;
+    const oppFutureWorse = diff.moveDepth > 0
+      ? -moveLookahead(opp, Math.min(diff.moveDepth, 3), 0)
+      : 0;
+
+    piece.x = sx;
+    piece.y = sy;
+    state.board[ty][tx] = null;
+    state.board[sy][sx] = piece.id;
+
+    const priority = [
+      reward,
+      blockedImmediate,
+      selfFuture,
+      oppFutureWorse,
+    ];
+
+    if (
+      !bestPriority ||
+      comparePriorityVectors(priority, bestPriority) > 0 ||
+      (comparePriorityVectors(priority, bestPriority) === 0 && tx + ty < bestMove.target.x + bestMove.target.y)
+    ) {
+      bestPriority = priority;
+      bestMove = move;
+    }
+  }
+
+  return bestMove;
+}
+
+function scheduleAI() {
+  if (!state.vsAI || state.aiPlayer !== state.currentPlayer) return;
+  if (state.phase === "game-over") return;
+
+  state.aiThinking = true;
+  state.messageMain = `${playerName(state.aiPlayer)}（AI）思考中...`;
+  state.messageSub = `难度：${difficultyLabel()}`;
+  render();
+
+  aiTimer = setTimeout(() => {
+    aiTimer = null;
+    state.aiThinking = false;
+    performAIAction();
+  }, 350 + Math.random() * 350);
+}
+
+function performAIAction() {
+  if (state.phase === "game-over") return;
+
+  if (state.phase === "placement") {
+    const pos = aiPickPlacement();
+    if (pos) placePiece(pos.x, pos.y);
+    return;
+  }
+
+  if (state.phase === "opening-capture" || state.phase === "bonus-capture") {
+    const pieceId = aiPickCapture();
+    if (pieceId != null) {
+      if (state.phase === "opening-capture") handleOpeningCapture(pieceId);
+      else handleBonusCapture(pieceId);
+    }
+    return;
+  }
+
+  if (state.phase === "movement") {
+    const move = aiPickMovement();
+    if (move) {
+      state.selectedPieceId = move.pieceId;
+      movePieceTo(move.pieceId, move.target.x, move.target.y);
+    }
+    return;
+  }
+}
+
+// ==================== End AI Logic ====================
+
+function onPointClick(x, y) {
+  unlockAudio();
+  if (state.phase === "game-over") return;
+  if (state.aiThinking) return;
+  if (state.vsAI && state.currentPlayer === state.aiPlayer) return;
+
+  const pieceId = state.board[y][x];
+
+  if (state.phase === "placement") {
+    if (!pieceId) placePiece(x, y);
+    return;
+  }
+
+  if (state.phase === "opening-capture") {
+    if (pieceId) handleOpeningCapture(pieceId);
+    return;
+  }
+
+  if (state.phase === "bonus-capture") {
+    if (pieceId) handleBonusCapture(pieceId);
+    return;
+  }
+
+  if (state.phase !== "movement") return;
+
+  if (pieceId) {
+    const piece = state.pieces[pieceId];
+    if (piece.owner === state.currentPlayer) {
+      state.selectedPieceId = state.selectedPieceId === pieceId ? null : pieceId;
+      state.messageMain = state.selectedPieceId
+        ? `${playerName(state.currentPlayer)}已选中 ${coordText(piece.x, piece.y)}`
+        : `${playerName(state.currentPlayer)}走子`;
+      state.messageSub = state.selectedPieceId
+        ? "请选择一个上下左右相邻的空位移动。"
+        : "先点自己的棋子，再点相邻空位。";
+      render();
+    }
+    return;
+  }
+
+  if (state.selectedPieceId) {
+    movePieceTo(state.selectedPieceId, x, y);
+  }
+}
+
+function resign(player) {
+  if (state.phase === "game-over") return;
+  if (state.aiThinking) return;
+  if (state.vsAI && player === state.aiPlayer) return;
+  const winner = otherPlayer(player);
+  clearAITimer();
+  endGame(winner, `${playerName(player)} 认输，${playerName(winner)} 获胜。`);
+  render();
+}
+
+function changeMarkerStyle(markerStyle) {
+  if (!MARKER_STYLES[markerStyle] || markerStyle === state.markerStyle) return;
+  state.markerStyle = markerStyle;
+  render();
+}
+
+function changeSceneStyle(sceneStyle) {
+  if (!SCENE_STYLES[sceneStyle] || sceneStyle === state.sceneStyle) return;
+  state.sceneStyle = sceneStyle;
+  render();
+}
+
+function changeSize(size) {
+  if (size === state.size) return;
+  clearAITimer();
+  state = createInitialState(size, state.markerStyle, state.sceneStyle, state.vsAI, state.aiPlayer, state.aiDifficulty);
+  addHistory("新棋盘", `切换到 ${size} 道方。`);
+  render();
+  scheduleAI();
+}
+
+function resetGame() {
+  clearAITimer();
+  const { size, markerStyle, sceneStyle, vsAI, aiPlayer, aiDifficulty } = state;
+  state = createInitialState(size, markerStyle, sceneStyle, vsAI, aiPlayer, aiDifficulty);
+  render();
+  scheduleAI();
+}
+
+function changeMode(mode) {
+  clearAITimer();
+  const vsAI = mode === "ai";
+  if (vsAI === state.vsAI) return;
+  state = createInitialState(state.size, state.markerStyle, state.sceneStyle, vsAI, state.aiPlayer, state.aiDifficulty);
+  render();
+  scheduleAI();
+}
+
+function changeAISide(aiPlayerVal) {
+  clearAITimer();
+  const p = Number(aiPlayerVal);
+  if (p === state.aiPlayer) return;
+  state = createInitialState(state.size, state.markerStyle, state.sceneStyle, state.vsAI, p, state.aiDifficulty);
+  render();
+  scheduleAI();
+}
+
+function changeDifficulty(diff) {
+  if (diff === state.aiDifficulty) return;
+  state.aiDifficulty = diff;
+  render();
+}
+
+function getPhaseLabel() {
+  switch (state.phase) {
+    case "placement":
+      return "落子阶段";
+    case "opening-capture":
+      return "走子前互拿";
+    case "movement":
+      return "走子阶段";
+    case "bonus-capture":
+      return "奖励拿子";
+    case "game-over":
+      return "对局结束";
+    default:
+      return "-";
+  }
+}
+
+function getPendingLabel() {
+  if (state.phase === "placement") {
+    return `还可下 ${state.pendingPlacements} 子`;
+  }
+  if (state.phase === "opening-capture") {
+    return "各拿 1 子";
+  }
+  if (state.phase === "bonus-capture") {
+    return `还可拿 ${state.pendingCaptures} 子`;
+  }
+  return "无";
+}
+
+function renderBoard() {
+  const shell = document.getElementById("boardShell");
+  const svg = document.getElementById("boardSvg");
+  const layer = document.getElementById("pointLayer");
+  const size = state.size;
+  const pad = size === 5 ? 62 : 56;
+  const span = 100;
+  const view = pad * 2 + span * (size - 1);
+
+  shell.style.maxWidth = `${view}px`;
+  svg.setAttribute("viewBox", `0 0 ${view} ${view}`);
+  svg.innerHTML = "";
+  layer.innerHTML = "";
+
+  for (let i = 0; i < size; i++) {
+    const p = pad + i * span;
+
+    const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    hLine.setAttribute("x1", pad);
+    hLine.setAttribute("y1", p);
+    hLine.setAttribute("x2", view - pad);
+    hLine.setAttribute("y2", p);
+    hLine.setAttribute("stroke", "var(--line)");
+    hLine.setAttribute("stroke-width", i === 0 || i === size - 1 ? "5" : "4");
+    hLine.setAttribute("stroke-linecap", "round");
+    svg.appendChild(hLine);
+
+    const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    vLine.setAttribute("x1", p);
+    vLine.setAttribute("y1", pad);
+    vLine.setAttribute("x2", p);
+    vLine.setAttribute("y2", view - pad);
+    vLine.setAttribute("stroke", "var(--line)");
+    vLine.setAttribute("stroke-width", i === 0 || i === size - 1 ? "5" : "4");
+    vLine.setAttribute("stroke-linecap", "round");
+    svg.appendChild(vLine);
+  }
+
+  const selectedMoves = state.selectedPieceId ? getPieceMoves(state.selectedPieceId) : [];
+
+  for (let y = size - 1; y >= 0; y--) {
+    for (let x = 0; x < size; x++) {
+      const left = pad + x * span;
+      const top = pad + (size - 1 - y) * span;
+      const point = document.createElement("button");
+      point.type = "button";
+      point.className = "point";
+      point.style.left = `${(left / view) * 100}%`;
+      point.style.top = `${(top / view) * 100}%`;
+      point.title = coordText(x, y);
+
+      const pieceId = state.board[y][x];
+      const canPlace = state.phase === "placement" && !pieceId;
+      const validMove = state.phase === "movement" && selectedMoves.some(pos => pos.x === x && pos.y === y);
+      const captureTarget =
+        (state.phase === "opening-capture" || state.phase === "bonus-capture") &&
+        pieceId &&
+        state.pieces[pieceId].owner === otherPlayer(state.currentPlayer);
+
+      if (canPlace) point.classList.add("playable");
+      if (validMove) point.classList.add("valid-move");
+      if (captureTarget) point.classList.add("capture-target");
+      if (pieceId && pieceId === state.selectedPieceId) point.classList.add("selected");
+
+      if (pieceId) {
+        const stone = document.createElement("span");
+        applyMarkerLook(stone, state.pieces[pieceId].owner, "stone");
+        point.appendChild(stone);
+      }
+
+      point.addEventListener("click", () => onPointClick(x, y));
+      layer.appendChild(point);
+    }
+  }
+
+  for (let x = 0; x < size; x++) {
+    const left = ((pad + x * span) / view) * 100;
+    const label = document.createElement("span");
+    label.className = "axis-label x";
+    label.style.left = `${left}%`;
+    label.textContent = String(x);
+    shell.appendChild(label);
+  }
+
+  for (let y = 0; y < size; y++) {
+    const top = ((pad + (size - 1 - y) * span) / view) * 100;
+    const label = document.createElement("span");
+    label.className = "axis-label y";
+    label.style.top = `${top}%`;
+    label.textContent = String(y);
+    shell.appendChild(label);
+  }
+}
+
+function clearAxisLabels() {
+  document.querySelectorAll(".axis-label").forEach(node => node.remove());
+}
+
+function applyMarkerLook(element, owner, role) {
+  element.className = `${role} ${PLAYER_META[owner].cls} marker-${state.markerStyle}`;
+}
+
+function renderHistory() {
+  const list = document.getElementById("historyList");
+  if (!state.history.length) {
+    list.innerHTML = '<div class="history-item"><div class="title">开局</div><div class="detail">黑方先手。落子阶段合住会继续奖励落子。</div></div>';
+    return;
+  }
+
+  list.innerHTML = state.history.map(item => `
+    <div class="history-item">
+      <div class="title">${item.title}</div>
+      <div class="detail">${item.detail}</div>
+    </div>
+  `).join("");
+}
+
+function render() {
+  document.body.dataset.scene = state.sceneStyle;
+  document.getElementById("boardTitle").textContent = `${state.size}道方棋盘`;
+  document.getElementById("phaseValue").textContent = getPhaseLabel();
+  document.getElementById("turnValue").textContent = state.phase === "game-over"
+    ? (state.winner ? displayPlayerName(state.winner) : "平局")
+    : displayPlayerName(state.currentPlayer);
+  document.getElementById("pendingValue").textContent = getPendingLabel();
+  document.getElementById("comboValue").textContent = state.lastComboText;
+  document.getElementById("messageMain").textContent = state.messageMain;
+  document.getElementById("messageSub").textContent = state.messageSub;
+  document.getElementById("blackCount").textContent = countPieces(BLACK);
+  document.getElementById("whiteCount").textContent = countPieces(WHITE);
+  document.getElementById("playerBlack").classList.toggle("active", state.currentPlayer === BLACK && state.phase !== "game-over");
+  document.getElementById("playerWhite").classList.toggle("active", state.currentPlayer === WHITE && state.phase !== "game-over");
+
+  document.getElementById("blackDesc").textContent =
+    state.vsAI && state.aiPlayer === BLACK ? `AI（${difficultyLabel()}）` : "先手落子";
+  document.getElementById("whiteDesc").textContent =
+    state.vsAI && state.aiPlayer === WHITE ? `AI（${difficultyLabel()}）` : "后手落子 / 先手走子";
+
+  document.querySelectorAll("#sizeSwitch button").forEach(button => {
+    button.classList.toggle("active", Number(button.dataset.size) === state.size);
+  });
+
+  document.querySelectorAll("#markerSwitch button").forEach(button => {
+    button.classList.toggle("active", button.dataset.style === state.markerStyle);
+  });
+
+  document.querySelectorAll("#sceneSwitch button").forEach(button => {
+    button.classList.toggle("active", button.dataset.scene === state.sceneStyle);
+  });
+
+  document.querySelectorAll("#modeSwitch button").forEach(button => {
+    button.classList.toggle("active", (button.dataset.mode === "ai") === state.vsAI);
+  });
+
+  const aiSideEl = document.getElementById("aiSideSwitch");
+  const diffEl = document.getElementById("difficultySwitch");
+  aiSideEl.style.display = state.vsAI ? "" : "none";
+  diffEl.style.display = state.vsAI ? "" : "none";
+
+  document.querySelectorAll("#aiSideSwitch button").forEach(button => {
+    button.classList.toggle("active", Number(button.dataset.aiPlayer) === state.aiPlayer);
+  });
+
+  document.querySelectorAll("#difficultySwitch button").forEach(button => {
+    button.classList.toggle("active", button.dataset.difficulty === state.aiDifficulty);
+  });
+
+  const humanPlayer = state.vsAI ? otherPlayer(state.aiPlayer) : null;
+  document.getElementById("resignBlackBtn").style.display =
+    state.vsAI && state.aiPlayer === BLACK ? "none" : "";
+  document.getElementById("resignWhiteBtn").style.display =
+    state.vsAI && state.aiPlayer === WHITE ? "none" : "";
+
+  applyMarkerLook(document.getElementById("blackPreview"), BLACK, "stone-preview");
+  applyMarkerLook(document.getElementById("whitePreview"), WHITE, "stone-preview");
+
+  clearAxisLabels();
+  renderBoard();
+  renderHistory();
+}
+
+document.querySelectorAll("#sizeSwitch button").forEach(button => {
+  button.addEventListener("click", () => changeSize(Number(button.dataset.size)));
+});
+
+document.querySelectorAll("#markerSwitch button").forEach(button => {
+  button.addEventListener("click", () => changeMarkerStyle(button.dataset.style));
+});
+
+document.querySelectorAll("#sceneSwitch button").forEach(button => {
+  button.addEventListener("click", () => changeSceneStyle(button.dataset.scene));
+});
+
+document.querySelectorAll("#modeSwitch button").forEach(button => {
+  button.addEventListener("click", () => changeMode(button.dataset.mode));
+});
+
+document.querySelectorAll("#aiSideSwitch button").forEach(button => {
+  button.addEventListener("click", () => changeAISide(button.dataset.aiPlayer));
+});
+
+document.querySelectorAll("#difficultySwitch button").forEach(button => {
+  button.addEventListener("click", () => changeDifficulty(button.dataset.difficulty));
+});
+
+document.getElementById("restartBtn").addEventListener("click", resetGame);
+document.getElementById("restartBtnInline").addEventListener("click", resetGame);
+document.getElementById("undoSelectBtn").addEventListener("click", () => {
+  state.selectedPieceId = null;
+  if (state.phase === "movement") {
+    state.messageMain = `${playerName(state.currentPlayer)}走子`;
+    state.messageSub = "先点自己的棋子，再点相邻空位。";
+  }
+  render();
+});
+document.getElementById("resignBlackBtn").addEventListener("click", () => resign(BLACK));
+document.getElementById("resignWhiteBtn").addEventListener("click", () => resign(WHITE));
+
+render();
+scheduleAI();
+</script>
+</body>
+</html>
