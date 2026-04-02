@@ -971,7 +971,7 @@
   <header class="header">
     <div class="title-wrap">
       <h1>下 方</h1>
-      <p>支持 5 道方 / 6 道方，本地双人对弈。落子阶段合住连下，走子阶段合住吃子，并带“一步来回不重复算合住”以及“走子、拿子都不能把对手堵死”的限制。</p>
+      <p>支持 5 道方 / 6 道方，本地双人对弈。落子阶段合住连下，走子阶段合住吃子，并带“一步来回不重复算合住”以及“走子不能把对手堵死”的限制。</p>
     </div>
     <div class="header-actions">
       <div class="segmented" id="modeSwitch">
@@ -1095,7 +1095,7 @@
         <h2>规则摘要</h2>
         <div class="rules-list">
           <div><strong>落子阶段：</strong>轮流下子，合住后奖励额外落子数，多个方 / 斜 / 成龙同时成立时奖励叠加。</div>
-          <div><strong>走子阶段：</strong>棋盘下满后，双方先各拿掉对方一个子，随后由后手先走。每次只能上下左右走到相邻空位；无论走子还是拿子，都不能把对手堵到完全无路可走。</div>
+          <div><strong>走子阶段：</strong>棋盘下满后，双方先各拿掉对方一个子，随后由后手先走。每次只能上下左右走到相邻空位，且走子时不能把对手堵到完全无路可走；拿子不受这一条限制。</div>
           <div><strong>吃子奖励：</strong>走子后若合住，奖励不再是继续下子，而是立刻拿掉对方同等数量的棋子。</div>
           <div><strong>防刷限制：</strong>同一颗子刚在某点合住，下一次若直接走开再立刻走回，该点上次形成过的合住不重复计奖；多绕一步后再回来则可以重新算。</div>
           <div><strong>对角线：</strong>统计整条边界到边界的斜线；三斜 / 四斜奖励 +1，长度达到 5 及以上的斜线奖励 +2。</div>
@@ -1141,9 +1141,9 @@ const SCENE_STYLES = {
 };
 
 const AI_DIFFICULTY = {
-  easy:   { label: "简单", placementDepth: 2, randomChance: 0, blockWeight: 10, threatWeight: 10,  chainWeight: 18, replyWeight: 0.6, moveDepth: 1, synergyWeight: 3  },
-  medium: { label: "中等", placementDepth: 3, randomChance: 0, blockWeight: 18, threatWeight: 16,  chainWeight: 26, replyWeight: 1.0, moveDepth: 2, synergyWeight: 5  },
-  hard:   { label: "困难", placementDepth: 4, randomChance: 0, blockWeight: 28, threatWeight: 24,  chainWeight: 36, replyWeight: 1.5, moveDepth: 3, synergyWeight: 10 },
+  easy:   { label: "简单", placementDepth: 3, randomChance: 0, blockWeight: 14, threatWeight: 14, chainWeight: 22, replyWeight: 0.9, moveDepth: 2, synergyWeight: 4, searchWidth: 8 },
+  medium: { label: "中等", placementDepth: 4, randomChance: 0, blockWeight: 24, threatWeight: 22, chainWeight: 32, replyWeight: 1.3, moveDepth: 3, synergyWeight: 7, searchWidth: 10 },
+  hard:   { label: "困难", placementDepth: 5, randomChance: 0, blockWeight: 36, threatWeight: 32, chainWeight: 44, replyWeight: 1.8, moveDepth: 4, synergyWeight: 12, searchWidth: 12 },
 };
 
 const patternCache = new Map();
@@ -1511,24 +1511,10 @@ function violatesNoBlockRule(piece, target, board = state.board, pieces = state.
   return !canPlayerMoveOnBoard(opponent, nextBoard, nextPieces, size);
 }
 
-function captureViolatesNoBlockRule(targetPiece, board = state.board, pieces = state.pieces, size = state.size) {
-  const nextBoard = cloneBoard(board);
-  nextBoard[targetPiece.y][targetPiece.x] = null;
-
-  const nextPieces = { ...pieces };
-  delete nextPieces[targetPiece.id];
-
-  const remainingOpponentPieces = Object.values(nextPieces).filter(piece => piece.owner === targetPiece.owner);
-  if (remainingOpponentPieces.length === 0) return false;
-
-  return !canPlayerMoveOnBoard(targetPiece.owner, nextBoard, nextPieces, size);
-}
-
 function getLegalCaptureTargets(player = state.currentPlayer, board = state.board, pieces = state.pieces, size = state.size) {
   const targetPlayer = otherPlayer(player);
   return Object.values(pieces)
-    .filter(piece => piece.owner === targetPlayer)
-    .filter(piece => !captureViolatesNoBlockRule(piece, board, pieces, size));
+    .filter(piece => piece.owner === targetPlayer);
 }
 
 function getPieceMoves(pieceId, board = state.board, pieces = state.pieces, size = state.size, enforceNoBlock = state.phase === "movement") {
@@ -1869,7 +1855,7 @@ function ensureCurrentPlayerCanCapture() {
     if (state.currentPlayer === state.firstPlayer) {
       state.currentPlayer = state.secondPlayer;
       state.messageMain = `${playerName(state.currentPlayer)}也要先拿子`;
-      state.messageSub = `按规则不能堵死对手；${playerName(state.firstPlayer)} 本轮无合法拿子，轮到 ${playerName(state.currentPlayer)} 拿子。`;
+      state.messageSub = `${playerName(state.firstPlayer)} 本轮无子可拿，轮到 ${playerName(state.currentPlayer)} 拿子。`;
       ensureCurrentPlayerCanCapture();
       return;
     }
@@ -1881,7 +1867,7 @@ function ensureCurrentPlayerCanCapture() {
   state.pendingCaptures = 0;
   state.phase = "movement";
   state.messageMain = `${playerName(state.currentPlayer)}本轮结束`;
-  state.messageSub = "奖励拿子因不能堵死对手而提前结束，轮到对方走子。";
+  state.messageSub = "奖励拿子因对方已无子可拿而提前结束，轮到对方走子。";
   maybeAdvanceAfterMovement();
 }
 
@@ -1970,12 +1956,6 @@ function handleOpeningCapture(pieceId) {
   if (state.phase !== "opening-capture") return;
   const target = state.pieces[pieceId];
   if (!target || target.owner === state.currentPlayer) return;
-  if (captureViolatesNoBlockRule(target)) {
-    state.messageMain = `${playerName(state.currentPlayer)}这子不能拿`;
-    state.messageSub = "按规则，拿掉这子会把对手堵到完全无路可走。";
-    render();
-    return;
-  }
 
   const removed = removePiece(pieceId);
   if (!removed) return;
@@ -2074,12 +2054,6 @@ function handleBonusCapture(pieceId) {
   if (state.phase !== "bonus-capture") return;
   const target = state.pieces[pieceId];
   if (!target || target.owner === state.currentPlayer) return;
-  if (captureViolatesNoBlockRule(target)) {
-    state.messageMain = `${playerName(state.currentPlayer)}这子不能拿`;
-    state.messageSub = "按规则，奖励拿子也不能把对手堵到完全无路可走。";
-    render();
-    return;
-  }
 
   const removed = removePiece(pieceId);
   if (!removed) return;
@@ -2244,7 +2218,7 @@ function evaluateSelfFuturePlacement(board, x, y, player, size, difficulty) {
     if (remaining <= 0) continue;
 
     if (remaining === 1) {
-      total += pattern.reward * difficulty.threatWeight * 12;
+      total += pattern.reward * difficulty.threatWeight * 18;
     } else {
       total += getTempoBuildScore(pattern, mineAfter, remaining, difficulty);
     }
@@ -2270,11 +2244,11 @@ function evaluateOpponentFutureSuppression(board, x, y, opponent, size) {
 
     const oppNeed = pattern.cells.length - oppCount;
     if (oppNeed === 1) {
-      total += pattern.reward * 100 + pattern.cells.length * 5;
+      total += pattern.reward * 140 + pattern.cells.length * 8;
     } else if (oppNeed === 2) {
-      total += pattern.reward * 24 + pattern.cells.length;
+      total += pattern.reward * 40 + pattern.cells.length * 2;
     } else if (oppNeed === 3) {
-      total += pattern.reward * 8;
+      total += pattern.reward * 12;
     }
   }
   return total;
@@ -2287,13 +2261,14 @@ function getTempoBuildScore(pattern, mineAfter, remaining, difficulty) {
 
   let base = 8;
   if (pattern.type === "diagonal") {
-    if (pattern.cells.length === 3) base = 34;
-    else if (pattern.cells.length === 4) base = 20;
-    else base = 10;
+    if (pattern.cells.length === 3) base = 42;
+    else if (pattern.cells.length === 4) base = 26;
+    else if (pattern.cells.length === 5) base = 14;
+    else base = 18;
   } else if (pattern.type === "square") {
-    base = 18;
+    base = 24;
   } else if (pattern.type === "dragon") {
-    base = 7;
+    base = 9;
   }
 
   return pattern.reward * base * (mineAfter * mineAfter) / remaining;
@@ -2461,9 +2436,9 @@ function topKMoves(player, k) {
   return scored.slice(0, k).map(e => e.m);
 }
 
-function moveLookahead(player, depth, alpha) {
+function moveLookahead(player, depth, alpha, width = 6) {
   if (depth <= 0) return 0;
-  const moves = topKMoves(player, 6);
+  const moves = topKMoves(player, width);
   let best = 0;
   for (const move of moves) {
     const piece = state.pieces[move.pieceId];
@@ -2479,7 +2454,7 @@ function moveLookahead(player, depth, alpha) {
     let val = rewardTotal(filtered.patterns);
     val += countThreatsAt(state.board, tx, ty, player, state.size) * 0.3;
     if (depth > 1) {
-      const oppReply = moveLookahead(otherPlayer(player), depth - 1, best);
+      const oppReply = moveLookahead(otherPlayer(player), depth - 1, best, width);
       val -= oppReply * 0.6;
     }
     piece.x = sx;
@@ -2546,7 +2521,7 @@ function aiPickMovement() {
       moveAdvancementScore(state.board, tx, ty, me, size) * diff.synergyWeight * 0.5 -
       moveAdvancementScore(before, sx, sy, me, size) * diff.synergyWeight * 0.3;
     const oppFutureWorse = diff.moveDepth > 0
-      ? -moveLookahead(opp, Math.min(diff.moveDepth, 3), 0)
+      ? -moveLookahead(opp, Math.min(diff.moveDepth, 4), 0, diff.searchWidth)
       : 0;
 
     piece.x = sx;
