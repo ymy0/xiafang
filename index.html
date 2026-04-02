@@ -1150,7 +1150,7 @@
           <div><strong>走子阶段：</strong>棋盘下满后，双方先各拿掉对方一个子，随后由后手先走。每次只能上下左右走到相邻空位，且走子时不能把对手堵到完全无路可走；拿子不受这一条限制。</div>
           <div><strong>吃子奖励：</strong>走子后若合住，奖励不再是继续下子，而是立刻拿掉对方同等数量的棋子。</div>
           <div><strong>防刷限制：</strong>同一颗子刚在某点合住，下一次若直接走开再立刻走回，该点上次形成过的合住不重复计奖；多绕一步后再回来则可以重新算。</div>
-          <div><strong>对角线：</strong>统计整条边界到边界的斜线；三斜 / 四斜奖励 +1，长度达到 5 及以上的斜线奖励 +2。</div>
+          <div><strong>对角线：</strong>统计整条边界到边界的斜线；三斜 / 四斜奖励 +1，五斜奖励 +2，六斜奖励 +3。</div>
         </div>
       </section>
 
@@ -1194,9 +1194,9 @@ const SCENE_STYLES = {
 };
 
 const AI_DIFFICULTY = {
-  easy:   { label: "简单", placementDepth: 3, randomChance: 0, blockWeight: 14, threatWeight: 14, chainWeight: 22, replyWeight: 0.9, moveDepth: 2, synergyWeight: 4, searchWidth: 8 },
-  medium: { label: "中等", placementDepth: 4, randomChance: 0, blockWeight: 24, threatWeight: 22, chainWeight: 32, replyWeight: 1.3, moveDepth: 3, synergyWeight: 7, searchWidth: 10 },
-  hard:   { label: "困难", placementDepth: 5, randomChance: 0, blockWeight: 36, threatWeight: 32, chainWeight: 44, replyWeight: 1.8, moveDepth: 4, synergyWeight: 12, searchWidth: 12 },
+  easy:   { label: "简单", placementDepth: 4, randomChance: 0, blockWeight: 18, threatWeight: 18, chainWeight: 30, replyWeight: 1.15, moveDepth: 3, synergyWeight: 5, searchWidth: 10 },
+  medium: { label: "中等", placementDepth: 5, randomChance: 0, blockWeight: 28, threatWeight: 26, chainWeight: 42, replyWeight: 1.6, moveDepth: 4, synergyWeight: 8, searchWidth: 12 },
+  hard:   { label: "困难", placementDepth: 6, randomChance: 0, blockWeight: 42, threatWeight: 38, chainWeight: 58, replyWeight: 2.1, moveDepth: 5, synergyWeight: 14, searchWidth: 14 },
 };
 
 const patternCache = new Map();
@@ -2347,45 +2347,224 @@ function getOpeningPlacementBonus(x, y, size) {
   return 0;
 }
 
+function analyzePatternOnOwnerBoard(ownerBoard, pattern, me, opp) {
+  let mine = 0;
+  let theirs = 0;
+  let empty = 0;
+  for (const cell of pattern.cells) {
+    const owner = ownerAtOnBoard(ownerBoard, cell.x, cell.y);
+    if (owner === me) mine++;
+    else if (owner === opp) theirs++;
+    else empty++;
+  }
+  return { mine, theirs, empty, len: pattern.cells.length };
+}
+
+function countImmediateThreatValueOnOwnerBoard(ownerBoard, player, size = state.size) {
+  const opponent = otherPlayer(player);
+  let total = 0;
+  for (const pattern of getPatterns(size)) {
+    const { mine, theirs, empty, len } = analyzePatternOnOwnerBoard(ownerBoard, pattern, player, opponent);
+    if (theirs === 0 && mine === len - 1 && empty === 1) {
+      total += pattern.reward * 100 + len * 5;
+    }
+  }
+  return total;
+}
+
+function countImmediateBlocksAtOnOwnerBoard(ownerBoard, x, y, opponent, size = state.size) {
+  let total = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(cell => cell.x === x && cell.y === y)) continue;
+    let oppCount = 0;
+    let myCount = 0;
+    for (const cell of pattern.cells) {
+      if (cell.x === x && cell.y === y) continue;
+      const owner = ownerAtOnBoard(ownerBoard, cell.x, cell.y);
+      if (owner === opponent) oppCount++;
+      else if (owner === otherPlayer(opponent)) myCount++;
+    }
+    if (myCount === 0 && oppCount === pattern.cells.length - 1) {
+      total += pattern.reward * 100 + pattern.cells.length * 5;
+    }
+  }
+  return total;
+}
+
+function evaluateSelfFuturePlacementOnOwnerBoard(ownerBoard, x, y, player, size, difficulty) {
+  const opponent = otherPlayer(player);
+  let total = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(cell => cell.x === x && cell.y === y)) continue;
+
+    let mine = 0;
+    let theirs = 0;
+    for (const cell of pattern.cells) {
+      if (cell.x === x && cell.y === y) continue;
+      const owner = ownerAtOnBoard(ownerBoard, cell.x, cell.y);
+      if (owner === player) mine++;
+      else if (owner === opponent) theirs++;
+    }
+
+    if (theirs > 0) continue;
+
+    const mineAfter = mine + 1;
+    const remaining = pattern.cells.length - mineAfter;
+    if (remaining <= 0) continue;
+
+    if (remaining === 1) total += pattern.reward * difficulty.threatWeight * 18;
+    else total += getTempoBuildScore(pattern, mineAfter, remaining, difficulty);
+  }
+  return total;
+}
+
+function evaluateOpponentFutureSuppressionOnOwnerBoard(ownerBoard, x, y, opponent, size = state.size) {
+  let total = 0;
+  for (const pattern of getPatterns(size)) {
+    if (!pattern.cells.some(cell => cell.x === x && cell.y === y)) continue;
+
+    let oppCount = 0;
+    let myCount = 0;
+    for (const cell of pattern.cells) {
+      if (cell.x === x && cell.y === y) continue;
+      const owner = ownerAtOnBoard(ownerBoard, cell.x, cell.y);
+      if (owner === opponent) oppCount++;
+      else if (owner === otherPlayer(opponent)) myCount++;
+    }
+
+    if (myCount > 0 || oppCount === 0) continue;
+
+    const oppNeed = pattern.cells.length - oppCount;
+    if (oppNeed === 1) total += pattern.reward * 140 + pattern.cells.length * 8;
+    else if (oppNeed === 2) total += pattern.reward * 40 + pattern.cells.length * 2;
+    else if (oppNeed === 3) total += pattern.reward * 12;
+  }
+  return total;
+}
+
+function evaluatePlacementPriorityOnOwnerBoard(ownerBoard, x, y, player, difficulty, size = state.size, pieceCount = 0) {
+  const opponent = otherPlayer(player);
+  const simulation = simulatePlacementOnBoard(ownerBoard, x, y, player, size);
+  const selfFuture =
+    evaluateSelfFuturePlacementOnOwnerBoard(ownerBoard, x, y, player, size, difficulty) +
+    (difficulty.placementDepth > 0 ? estimatePlacementContinuation(simulation.board, player, simulation.reward, difficulty.placementDepth, difficulty, size) * 5 : 0) +
+    (pieceCount === 0 ? getOpeningPlacementBonus(x, y, size) * difficulty.synergyWeight : 0);
+
+  return [
+    simulation.reward,
+    countImmediateBlocksAtOnOwnerBoard(ownerBoard, x, y, opponent, size),
+    selfFuture,
+    evaluateOpponentFutureSuppressionOnOwnerBoard(ownerBoard, x, y, opponent, size),
+  ];
+}
+
+function estimateBestPlacementReplyPriority(ownerBoard, player, difficulty, size = state.size, pieceCount = 0) {
+  const empties = getEmptyCells(ownerBoard);
+  if (!empties.length) return [0, 0, 0, 0];
+
+  const scored = empties.map(cell => ({
+    cell,
+    priority: evaluatePlacementPriorityOnOwnerBoard(ownerBoard, cell.x, cell.y, player, difficulty, size, pieceCount),
+  }));
+  scored.sort((a, b) => comparePriorityVectors(b.priority, a.priority));
+  return scored[0].priority;
+}
+
+function capturePriorityToScore(priority) {
+  return (priority[0] || 0) * 1000000 + (priority[1] || 0) * 10000 + (priority[2] || 0) * 100 + (priority[3] || 0);
+}
+
+function getCapturePriorityForTarget(target, attacker, defender, size = state.size) {
+  const allPatterns = getPatterns(size);
+  const beforeDefenderThreats = countImmediateThreatValue(state.board, defender, size);
+  const beforeAttackerThreats = countImmediateThreatValue(state.board, attacker, size);
+
+  let destroyComplete = 0;
+  let destroyImmediateThreat = 0;
+  let destroyFuture = 0;
+
+  for (const pattern of allPatterns) {
+    if (!pattern.cells.some(c => c.x === target.x && c.y === target.y)) continue;
+    const { mine, theirs, empty, len } = analyzePattern(state.board, pattern, defender, attacker);
+    if (mine > 0) continue;
+
+    if (theirs === len) destroyComplete += pattern.reward * 100 + len * 5;
+    else if (theirs === len - 1 && empty === 1) destroyImmediateThreat += pattern.reward * 100 + len * 5;
+    else if (theirs > 1) destroyFuture += pattern.reward * theirs * theirs + len;
+  }
+
+  const savedPid = state.board[target.y][target.x];
+  state.board[target.y][target.x] = null;
+  const savedPiece = state.pieces[target.id];
+  delete state.pieces[target.id];
+
+  const afterDefenderThreats = countImmediateThreatValue(state.board, defender, size);
+  const afterAttackerThreats = countImmediateThreatValue(state.board, attacker, size);
+  const defenderFutureWorse = beforeDefenderThreats - afterDefenderThreats;
+  const attackerFutureBetter = afterAttackerThreats - beforeAttackerThreats;
+
+  state.board[target.y][target.x] = savedPid;
+  state.pieces[target.id] = savedPiece;
+
+  return [
+    destroyComplete,
+    destroyImmediateThreat,
+    defenderFutureWorse + destroyFuture,
+    attackerFutureBetter,
+  ];
+}
+
+function estimateBestCaptureSwing(attacker, captures, size = state.size) {
+  if (captures <= 0) return 0;
+  const defender = otherPlayer(attacker);
+  const targets = getLegalCaptureTargets(attacker);
+  if (!targets.length) return 0;
+
+  const scored = targets
+    .map(target => capturePriorityToScore(getCapturePriorityForTarget(target, attacker, defender, size)))
+    .sort((a, b) => b - a);
+
+  return scored.slice(0, captures).reduce((sum, score) => sum + score, 0);
+}
+
 function aiPickPlacement() {
+  const ownerBoard = getOwnerBoard();
   const diff = AI_DIFFICULTY[state.aiDifficulty];
   const size = state.size;
   const me = state.aiPlayer;
   const opp = otherPlayer(me);
   const myPieceCount = countPieces(me);
 
-  const empties = [];
-  for (let y = 0; y < size; y++)
-    for (let x = 0; x < size; x++)
-      if (!state.board[y][x]) empties.push({ x, y });
+  const empties = getEmptyCells(ownerBoard);
   if (!empties.length) return null;
 
   let bestPriority = null;
   let bestPos = empties[0];
 
   for (const { x, y } of empties) {
-    const immediateReward = simulatePlacement(state.board, x, y, me, size);
-    const immediateBlocks = countImmediateBlocksAt(state.board, x, y, opp, size);
-    const selfFuture =
-      evaluateSelfFuturePlacement(state.board, x, y, me, size, diff) +
-      (diff.placementDepth > 0 ? simulateChainReward(state.board, x, y, me, size, diff.placementDepth) * 5 : 0) +
-      (myPieceCount === 0 ? getOpeningPlacementBonus(x, y, size) * diff.synergyWeight : 0);
-    const oppFutureSuppression = evaluateOpponentFutureSuppression(state.board, x, y, opp, size);
-
-    const priority = [
-      immediateReward,
-      immediateBlocks,
-      selfFuture,
-      oppFutureSuppression,
+    const simulation = simulatePlacementOnBoard(ownerBoard, x, y, me, size);
+    const priority = evaluatePlacementPriorityOnOwnerBoard(ownerBoard, x, y, me, diff, size, myPieceCount);
+    const oppReply = diff.replyWeight > 0
+      ? estimateBestPlacementReplyPriority(simulation.board, opp, diff, size, countPieces(opp))
+      : [0, 0, 0, 0];
+    const mergedPriority = [
+      priority[0],
+      priority[1],
+      priority[2],
+      priority[3],
+      -oppReply[0],
+      -oppReply[1],
+      -oppReply[2],
+      -oppReply[3],
     ];
 
     if (
       !bestPriority ||
-      comparePriorityVectors(priority, bestPriority) > 0 ||
-      (comparePriorityVectors(priority, bestPriority) === 0 && getOpeningPlacementBonus(x, y, size) > getOpeningPlacementBonus(bestPos.x, bestPos.y, size)) ||
-      (comparePriorityVectors(priority, bestPriority) === 0 && x + y < bestPos.x + bestPos.y)
+      comparePriorityVectors(mergedPriority, bestPriority) > 0 ||
+      (comparePriorityVectors(mergedPriority, bestPriority) === 0 && getOpeningPlacementBonus(x, y, size) > getOpeningPlacementBonus(bestPos.x, bestPos.y, size)) ||
+      (comparePriorityVectors(mergedPriority, bestPriority) === 0 && x + y < bestPos.x + bestPos.y)
     ) {
-      bestPriority = priority;
+      bestPriority = mergedPriority;
       bestPos = { x, y };
     }
   }
@@ -2396,54 +2575,14 @@ function aiPickPlacement() {
 function aiPickCapture() {
   const opp = otherPlayer(state.aiPlayer);
   const me = state.aiPlayer;
-  const size = state.size;
-  const allPatterns = getPatterns(size);
   const targets = getLegalCaptureTargets(state.aiPlayer);
   if (!targets.length) return null;
 
-  const beforeOppThreats = countImmediateThreatValue(state.board, opp, size);
-  const beforeMyThreats = countImmediateThreatValue(state.board, me, size);
   let bestPriority = null;
   let bestId = targets[0].id;
 
   for (const target of targets) {
-    let destroyComplete = 0;
-    let destroyImmediateThreat = 0;
-    let destroyFuture = 0;
-
-    for (const pattern of allPatterns) {
-      if (!pattern.cells.some(c => c.x === target.x && c.y === target.y)) continue;
-      const { mine, theirs, empty, len } = analyzePattern(state.board, pattern, opp, me);
-      if (mine > 0) continue;
-
-      if (theirs === len) {
-        destroyComplete += pattern.reward * 100 + len * 5;
-      } else if (theirs === len - 1 && empty === 1) {
-        destroyImmediateThreat += pattern.reward * 100 + len * 5;
-      } else if (theirs > 1) {
-        destroyFuture += pattern.reward * theirs * theirs + len;
-      }
-    }
-
-    const savedPid = state.board[target.y][target.x];
-    state.board[target.y][target.x] = null;
-    const savedPiece = state.pieces[target.id];
-    delete state.pieces[target.id];
-
-    const afterOppThreats = countImmediateThreatValue(state.board, opp, size);
-    const afterMyThreats = countImmediateThreatValue(state.board, me, size);
-    const oppFutureWorse = beforeOppThreats - afterOppThreats;
-    const myFutureBetter = afterMyThreats - beforeMyThreats;
-
-    state.board[target.y][target.x] = savedPid;
-    state.pieces[target.id] = savedPiece;
-
-    const priority = [
-      destroyComplete,
-      destroyImmediateThreat,
-      oppFutureWorse + destroyFuture,
-      myFutureBetter,
-    ];
+    const priority = getCapturePriorityForTarget(target, me, opp, state.size);
 
     if (
       !bestPriority ||
@@ -2475,7 +2614,7 @@ function quickMoveReward(move, player) {
   piece.y = source.y;
   state.board[move.target.y][move.target.x] = null;
   state.board[piece.y][piece.x] = piece.id;
-  return reward * 3 + threats;
+  return reward * 6 + threats * 2;
 }
 
 function topKMoves(player, k) {
@@ -2486,9 +2625,25 @@ function topKMoves(player, k) {
   return scored.slice(0, k).map(e => e.m);
 }
 
-function moveLookahead(player, depth, alpha, width = 6) {
+function evaluateMovementPosition(player, difficulty, size = state.size) {
+  const opponent = otherPlayer(player);
+  const myThreats = countImmediateThreatValue(state.board, player, size);
+  const oppThreats = countImmediateThreatValue(state.board, opponent, size);
+  const myMoves = getAllMoves(player, state.board, state.pieces, size, true).length;
+  const oppMoves = getAllMoves(opponent, state.board, state.pieces, size, true).length;
+
+  return (
+    myThreats * difficulty.threatWeight * 2 -
+    oppThreats * difficulty.blockWeight * 2 +
+    myMoves * 6 -
+    oppMoves * 7
+  );
+}
+
+function moveLookahead(player, depth, alpha, width = 6, difficulty = AI_DIFFICULTY[state.aiDifficulty]) {
   if (depth <= 0) return 0;
   const moves = topKMoves(player, width);
+  if (!moves.length) return -999999;
   let best = 0;
   for (const move of moves) {
     const piece = state.pieces[move.pieceId];
@@ -2501,11 +2656,14 @@ function moveLookahead(player, depth, alpha, width = 6) {
     piece.y = ty;
     const detected = detectNewPatterns(before, state.board, player);
     const filtered = filterImmediateRepeat(piece, { x: sx, y: sy }, { x: tx, y: ty }, detected);
-    let val = rewardTotal(filtered.patterns);
-    val += countThreatsAt(state.board, tx, ty, player, state.size) * 0.3;
+    const reward = rewardTotal(filtered.patterns);
+    let val = reward * difficulty.chainWeight;
+    val += estimateBestCaptureSwing(player, reward, state.size) * 0.01;
+    val += countThreatsAt(state.board, tx, ty, player, state.size) * difficulty.threatWeight;
+    val += evaluateMovementPosition(player, difficulty, state.size);
     if (depth > 1) {
-      const oppReply = moveLookahead(otherPlayer(player), depth - 1, best, width);
-      val -= oppReply * 0.6;
+      const oppReply = moveLookahead(otherPlayer(player), depth - 1, best, width, difficulty);
+      val -= oppReply * 0.72;
     }
     piece.x = sx;
     piece.y = sy;
@@ -2564,14 +2722,16 @@ function aiPickMovement() {
     const detected = detectNewPatterns(before, state.board, me);
     const { patterns } = filterImmediateRepeat(piece, { x: sx, y: sy }, { x: tx, y: ty }, detected);
     const reward = rewardTotal(patterns);
+    const captureSwing = estimateBestCaptureSwing(me, reward, size);
     const afterOppThreatValue = countImmediateThreatValue(state.board, opp, size);
     const blockedImmediate = beforeOppThreatValue - afterOppThreatValue;
     const selfFuture =
       countThreatsAt(state.board, tx, ty, me, size) * diff.threatWeight +
-      moveAdvancementScore(state.board, tx, ty, me, size) * diff.synergyWeight * 0.5 -
-      moveAdvancementScore(before, sx, sy, me, size) * diff.synergyWeight * 0.3;
+      moveAdvancementScore(state.board, tx, ty, me, size) * diff.synergyWeight * 0.5 +
+      captureSwing * 0.01 +
+      -moveAdvancementScore(before, sx, sy, me, size) * diff.synergyWeight * 0.3;
     const oppFutureWorse = diff.moveDepth > 0
-      ? -moveLookahead(opp, Math.min(diff.moveDepth, 4), 0, diff.searchWidth)
+      ? -moveLookahead(opp, Math.min(diff.moveDepth, 5), 0, diff.searchWidth, diff)
       : 0;
 
     piece.x = sx;
