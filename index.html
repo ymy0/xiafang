@@ -498,6 +498,57 @@
       repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0 4px, rgba(0,0,0,0.06) 4px 8px);
   }
 
+  .stone-preview.marker-chalk,
+  .stone.marker-chalk {
+    border-radius: 999px;
+  }
+
+  .stone.marker-chalk {
+    inset: auto;
+    width: 14px;
+    height: 38px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(18deg);
+  }
+
+  .stone-preview.marker-chalk {
+    width: 14px;
+    height: 30px;
+    margin-left: 5px;
+    transform: rotate(18deg);
+  }
+
+  .stone-preview.marker-chalk.black,
+  .stone.marker-chalk.black {
+    background:
+      linear-gradient(90deg, #2f3138 0%, #4a4d55 24%, #1e2128 76%, #0f1116 100%);
+    border: 2px solid #101319;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.28),
+      inset 0 1px 1px rgba(255,255,255,0.12);
+  }
+
+  .stone-preview.marker-chalk.white,
+  .stone.marker-chalk.white {
+    background:
+      linear-gradient(90deg, #fefaf1 0%, #f5eedf 22%, #fffaf2 70%, #d9d0bf 100%);
+    border: 2px solid #b7ad9c;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.2),
+      inset 0 1px 1px rgba(255,255,255,0.35);
+  }
+
+  .stone-preview.marker-chalk::after,
+  .stone.marker-chalk::after {
+    inset: 3px 2px;
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.2), transparent 42%),
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0 3px, rgba(0,0,0,0.04) 3px 6px);
+    opacity: 0.9;
+  }
+
   .player-meta {
     display: flex;
     flex-direction: column;
@@ -995,6 +1046,7 @@
         <button type="button" data-style="pebble">石子</button>
         <button type="button" data-style="brick">砖块</button>
         <button type="button" data-style="stick">木棍</button>
+        <button type="button" data-style="chalk">粉笔</button>
       </div>
       <div class="segmented" id="sceneSwitch">
         <button type="button" data-scene="yard">土院子</button>
@@ -1132,6 +1184,7 @@ const MARKER_STYLES = {
   pebble: "石子",
   brick: "砖块",
   stick: "木棍",
+  chalk: "粉笔",
 };
 
 const SCENE_STYLES = {
@@ -2341,7 +2394,6 @@ function aiPickPlacement() {
 }
 
 function aiPickCapture() {
-  const diff = AI_DIFFICULTY[state.aiDifficulty];
   const opp = otherPlayer(state.aiPlayer);
   const me = state.aiPlayer;
   const size = state.size;
@@ -2349,18 +2401,28 @@ function aiPickCapture() {
   const targets = getLegalCaptureTargets(state.aiPlayer);
   if (!targets.length) return null;
 
-  let bestScore = -Infinity;
+  const beforeOppThreats = countImmediateThreatValue(state.board, opp, size);
+  const beforeMyThreats = countImmediateThreatValue(state.board, me, size);
+  let bestPriority = null;
   let bestId = targets[0].id;
 
   for (const target of targets) {
-    let score = 0;
+    let destroyComplete = 0;
+    let destroyImmediateThreat = 0;
+    let destroyFuture = 0;
 
     for (const pattern of allPatterns) {
       if (!pattern.cells.some(c => c.x === target.x && c.y === target.y)) continue;
       const { mine, theirs, empty, len } = analyzePattern(state.board, pattern, opp, me);
-      if (theirs === len) score += pattern.reward * 25;
-      if (theirs === len - 1 && empty === 1) score += pattern.reward * 18;
-      if (mine === 0 && theirs > 1) score += theirs * 3;
+      if (mine > 0) continue;
+
+      if (theirs === len) {
+        destroyComplete += pattern.reward * 100 + len * 5;
+      } else if (theirs === len - 1 && empty === 1) {
+        destroyImmediateThreat += pattern.reward * 100 + len * 5;
+      } else if (theirs > 1) {
+        destroyFuture += pattern.reward * theirs * theirs + len;
+      }
     }
 
     const savedPid = state.board[target.y][target.x];
@@ -2368,40 +2430,28 @@ function aiPickCapture() {
     const savedPiece = state.pieces[target.id];
     delete state.pieces[target.id];
 
-    let myNewThreats = 0;
-    for (const pattern of allPatterns) {
-      if (!pattern.cells.some(c => c.x === target.x && c.y === target.y)) continue;
-      let myC = 0, empC = 0;
-      for (const c of pattern.cells) {
-        const o = ownerOnBoard(state.board, c.x, c.y);
-        if (o === me) myC++;
-        else if (o === EMPTY) empC++;
-      }
-      if (myC === pattern.cells.length - 1 && empC === 1) myNewThreats++;
-    }
-    score += myNewThreats * 12;
-
-    let oppThreatsRemoved = 0;
-    for (const pattern of allPatterns) {
-      const { mine, theirs, empty, len } = analyzePattern(state.board, pattern, opp, me);
-      if (theirs === len - 1 && empty === 1) oppThreatsRemoved++;
-    }
+    const afterOppThreats = countImmediateThreatValue(state.board, opp, size);
+    const afterMyThreats = countImmediateThreatValue(state.board, me, size);
+    const oppFutureWorse = beforeOppThreats - afterOppThreats;
+    const myFutureBetter = afterMyThreats - beforeMyThreats;
 
     state.board[target.y][target.x] = savedPid;
     state.pieces[target.id] = savedPiece;
 
-    let oppThreatsBefore = 0;
-    for (const pattern of allPatterns) {
-      const { mine, theirs, empty, len } = analyzePattern(state.board, pattern, opp, me);
-      if (theirs === len - 1 && empty === 1) oppThreatsBefore++;
-    }
-    score += (oppThreatsBefore - oppThreatsRemoved) * 10;
+    const priority = [
+      destroyComplete,
+      destroyImmediateThreat,
+      oppFutureWorse + destroyFuture,
+      myFutureBetter,
+    ];
 
     if (
-      score > bestScore ||
-      (score === bestScore && (target.y < state.pieces[bestId].y || (target.y === state.pieces[bestId].y && target.x < state.pieces[bestId].x)))
+      !bestPriority ||
+      comparePriorityVectors(priority, bestPriority) > 0 ||
+      (comparePriorityVectors(priority, bestPriority) === 0 &&
+        (target.y < state.pieces[bestId].y || (target.y === state.pieces[bestId].y && target.x < state.pieces[bestId].x)))
     ) {
-      bestScore = score;
+      bestPriority = priority;
       bestId = target.id;
     }
   }
