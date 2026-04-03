@@ -740,6 +740,37 @@
       0 0 28px 8px rgba(255, 30, 30, 0.25);
   }
 
+  .point.last-target::before,
+  .point.last-source::before {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .point.last-target::before {
+    width: 22px;
+    height: 22px;
+    background: rgba(250, 204, 21, 0.92);
+    box-shadow:
+      0 0 0 8px rgba(250, 204, 21, 0.2),
+      0 0 16px rgba(250, 204, 21, 0.35);
+  }
+
+  .point.last-source::before {
+    width: 14px;
+    height: 14px;
+    border: 3px solid rgba(147, 197, 253, 0.92);
+    box-shadow: 0 0 0 6px rgba(147, 197, 253, 0.16);
+    background: transparent;
+  }
+
+  .point.last-target .stone {
+    box-shadow:
+      0 0 0 4px rgba(250, 204, 21, 0.75),
+      0 0 18px rgba(250, 204, 21, 0.28);
+  }
+
   @keyframes captureGlow {
     0% { filter: brightness(1) drop-shadow(0 0 6px rgba(255, 50, 50, 0.6)); }
     100% { filter: brightness(1.08) drop-shadow(0 0 14px rgba(255, 50, 50, 0.9)); }
@@ -1027,7 +1058,7 @@
     <div class="header-actions">
       <div class="segmented" id="modeSwitch">
         <button type="button" data-mode="pvp">双人</button>
-        <button type="button" data-mode="ai">VS AI</button>
+        <button type="button" data-mode="ai">VS电脑</button>
       </div>
       <div class="segmented" id="aiSideSwitch">
         <button type="button" data-ai-player="1">AI 黑方</button>
@@ -1194,9 +1225,9 @@ const SCENE_STYLES = {
 };
 
 const AI_DIFFICULTY = {
-  easy:   { label: "简单", placementDepth: 4, randomChance: 0, blockWeight: 18, threatWeight: 18, chainWeight: 30, replyWeight: 1.15, moveDepth: 3, synergyWeight: 5, searchWidth: 10 },
-  medium: { label: "中等", placementDepth: 5, randomChance: 0, blockWeight: 28, threatWeight: 26, chainWeight: 42, replyWeight: 1.6, moveDepth: 4, synergyWeight: 8, searchWidth: 12 },
-  hard:   { label: "困难", placementDepth: 6, randomChance: 0, blockWeight: 42, threatWeight: 38, chainWeight: 58, replyWeight: 2.1, moveDepth: 5, synergyWeight: 14, searchWidth: 14 },
+  easy:   { label: "简单", placementDepth: 4, randomChance: 0, blockWeight: 20, threatWeight: 20, chainWeight: 32, replyWeight: 1.2, moveDepth: 3, synergyWeight: 6, searchWidth: 10, timeBudgetMs: 35, thinkDelayMs: 90 },
+  medium: { label: "中等", placementDepth: 5, randomChance: 0, blockWeight: 30, threatWeight: 28, chainWeight: 46, replyWeight: 1.75, moveDepth: 4, synergyWeight: 9, searchWidth: 12, timeBudgetMs: 70, thinkDelayMs: 150 },
+  hard:   { label: "困难", placementDepth: 6, randomChance: 0, blockWeight: 46, threatWeight: 42, chainWeight: 64, replyWeight: 2.3, moveDepth: 5, synergyWeight: 15, searchWidth: 14, timeBudgetMs: 120, thinkDelayMs: 220 },
 };
 
 const patternCache = new Map();
@@ -1204,6 +1235,7 @@ const patternCache = new Map();
 let state = createInitialState(5);
 let aiTimer = null;
 let audioCtx = null;
+let aiSearchDeadlineMs = 0;
 
 function createInitialState(size, markerStyle = "pebble", sceneStyle = "yard", vsAI = false, aiPlayer = WHITE, aiDifficulty = "medium") {
   return {
@@ -1226,6 +1258,10 @@ function createInitialState(size, markerStyle = "pebble", sceneStyle = "yard", v
     selectedPieceId: null,
     winner: null,
     lastComboText: "暂无",
+    lastActionTarget: null,
+    lastActionSource: null,
+    lastActionPlayer: null,
+    lastActionKind: null,
     messageMain: "黑方先落子",
     messageSub: "点击任意空点落子。若合住，则奖励的子数会继续由当前玩家立刻落下。",
     history: [],
@@ -1304,6 +1340,34 @@ function playMoveSound() {
 function playCaptureSound() {
   playTone({ frequency: 210, duration: 0.08, type: "square", gain: 0.035 });
   playTone({ frequency: 150, duration: 0.1, type: "square", gain: 0.028, startOffset: 0.05 });
+}
+
+function beginAISearch() {
+  aiSearchDeadlineMs = performance.now() + AI_DIFFICULTY[state.aiDifficulty].timeBudgetMs;
+}
+
+function searchExpired() {
+  return aiSearchDeadlineMs > 0 && performance.now() >= aiSearchDeadlineMs;
+}
+
+function getAdaptivePlacementWidth(difficulty, emptyCount) {
+  if (emptyCount >= 26) return Math.min(difficulty.searchWidth, 5);
+  if (emptyCount >= 20) return Math.min(difficulty.searchWidth, 6);
+  if (emptyCount >= 14) return Math.min(difficulty.searchWidth, 8);
+  return difficulty.searchWidth;
+}
+
+function getAdaptiveMoveWidth(difficulty, moveCount) {
+  if (moveCount >= 20) return Math.min(difficulty.searchWidth, 6);
+  if (moveCount >= 14) return Math.min(difficulty.searchWidth, 8);
+  if (moveCount >= 10) return Math.min(difficulty.searchWidth, 10);
+  return difficulty.searchWidth;
+}
+
+function getAdaptiveMoveDepth(difficulty, moveCount) {
+  if (moveCount >= 18) return Math.max(2, difficulty.moveDepth - 2);
+  if (moveCount >= 12) return Math.max(2, difficulty.moveDepth - 1);
+  return difficulty.moveDepth;
 }
 
 function isAITurn() {
@@ -1975,6 +2039,10 @@ function placePiece(x, y) {
     ? `落子 ${coordText(x, y)}，合住 ${summarizePatterns(patterns)}，奖励 ${reward} 子`
     : `落子 ${coordText(x, y)}，未合住`;
   addHistory(`${playerName(state.currentPlayer)}落子`, actionText);
+  state.lastActionTarget = { x, y };
+  state.lastActionSource = null;
+  state.lastActionPlayer = state.currentPlayer;
+  state.lastActionKind = "placement";
   playPlaceSound();
 
   if (boardIsFull()) {
@@ -2083,6 +2151,10 @@ function movePieceTo(pieceId, x, y) {
     `${playerName(state.currentPlayer)}走子`,
     `${coordText(source.x, source.y)} -> ${coordText(x, y)}，合住：${comboText}${blockedText}${reward > 0 ? `，可拿 ${reward} 子` : ""}。`
   );
+  state.lastActionSource = source;
+  state.lastActionTarget = { x, y };
+  state.lastActionPlayer = state.currentPlayer;
+  state.lastActionKind = "movement";
   playMoveSound();
 
   if (countPieces(otherPlayer(state.currentPlayer)) === 0) {
@@ -2461,13 +2533,15 @@ function evaluatePlacementPriorityOnOwnerBoard(ownerBoard, x, y, player, difficu
 function estimateBestPlacementReplyPriority(ownerBoard, player, difficulty, size = state.size, pieceCount = 0) {
   const empties = getEmptyCells(ownerBoard);
   if (!empties.length) return [0, 0, 0, 0];
+  if (searchExpired()) return [0, 0, 0, 0];
 
   const scored = empties.map(cell => ({
     cell,
     priority: evaluatePlacementPriorityOnOwnerBoard(ownerBoard, cell.x, cell.y, player, difficulty, size, pieceCount),
   }));
   scored.sort((a, b) => comparePriorityVectors(b.priority, a.priority));
-  return scored[0].priority;
+  const width = getAdaptivePlacementWidth(difficulty, empties.length);
+  return scored.slice(0, width)[0].priority;
 }
 
 function capturePriorityToScore(priority) {
@@ -2528,6 +2602,7 @@ function estimateBestCaptureSwing(attacker, captures, size = state.size) {
 }
 
 function aiPickPlacement() {
+  beginAISearch();
   const ownerBoard = getOwnerBoard();
   const diff = AI_DIFFICULTY[state.aiDifficulty];
   const size = state.size;
@@ -2542,6 +2617,7 @@ function aiPickPlacement() {
   let bestPos = empties[0];
 
   for (const { x, y } of empties) {
+    if (searchExpired() && bestPriority) break;
     const simulation = simulatePlacementOnBoard(ownerBoard, x, y, me, size);
     const priority = evaluatePlacementPriorityOnOwnerBoard(ownerBoard, x, y, me, diff, size, myPieceCount);
     const oppReply = diff.replyWeight > 0
@@ -2614,7 +2690,7 @@ function quickMoveReward(move, player) {
   piece.y = source.y;
   state.board[move.target.y][move.target.x] = null;
   state.board[piece.y][piece.x] = piece.id;
-  return reward * 6 + threats * 2;
+  return reward * 10 + threats * 4 + estimateBestCaptureSwing(player, reward, state.size) * 0.01;
 }
 
 function topKMoves(player, k) {
@@ -2631,21 +2707,26 @@ function evaluateMovementPosition(player, difficulty, size = state.size) {
   const oppThreats = countImmediateThreatValue(state.board, opponent, size);
   const myMoves = getAllMoves(player, state.board, state.pieces, size, true).length;
   const oppMoves = getAllMoves(opponent, state.board, state.pieces, size, true).length;
+  const myPieces = countPieces(player);
+  const oppPieces = countPieces(opponent);
 
   return (
+    (myPieces - oppPieces) * 120 +
     myThreats * difficulty.threatWeight * 2 -
     oppThreats * difficulty.blockWeight * 2 +
-    myMoves * 6 -
-    oppMoves * 7
+    myMoves * 8 -
+    oppMoves * 10
   );
 }
 
 function moveLookahead(player, depth, alpha, width = 6, difficulty = AI_DIFFICULTY[state.aiDifficulty]) {
-  if (depth <= 0) return 0;
-  const moves = topKMoves(player, width);
+  if (depth <= 0 || searchExpired()) return evaluateMovementPosition(player, difficulty, state.size);
+  const allMoves = getAllMoves(player);
+  const moves = topKMoves(player, Math.min(width, getAdaptiveMoveWidth(difficulty, allMoves.length)));
   if (!moves.length) return -999999;
-  let best = 0;
+  let best = -Infinity;
   for (const move of moves) {
+    if (searchExpired()) break;
     const piece = state.pieces[move.pieceId];
     const sx = piece.x, sy = piece.y;
     const { x: tx, y: ty } = move.target;
@@ -2658,7 +2739,7 @@ function moveLookahead(player, depth, alpha, width = 6, difficulty = AI_DIFFICUL
     const filtered = filterImmediateRepeat(piece, { x: sx, y: sy }, { x: tx, y: ty }, detected);
     const reward = rewardTotal(filtered.patterns);
     let val = reward * difficulty.chainWeight;
-    val += estimateBestCaptureSwing(player, reward, state.size) * 0.01;
+    val += estimateBestCaptureSwing(player, reward, state.size) * 0.015;
     val += countThreatsAt(state.board, tx, ty, player, state.size) * difficulty.threatWeight;
     val += evaluateMovementPosition(player, difficulty, state.size);
     if (depth > 1) {
@@ -2670,6 +2751,8 @@ function moveLookahead(player, depth, alpha, width = 6, difficulty = AI_DIFFICUL
     state.board[ty][tx] = null;
     state.board[sy][sx] = piece.id;
     if (val > best) best = val;
+    if (best > alpha) alpha = best;
+    if (alpha > 2000000) break;
   }
   return best;
 }
@@ -2697,6 +2780,7 @@ function moveAdvancementScore(board, x, y, player, size) {
 }
 
 function aiPickMovement() {
+  beginAISearch();
   const diff = AI_DIFFICULTY[state.aiDifficulty];
   const me = state.aiPlayer;
   const opp = otherPlayer(me);
@@ -2704,11 +2788,14 @@ function aiPickMovement() {
   const moves = getAllMoves(me);
   if (!moves.length) return null;
 
+  const adaptiveDepth = getAdaptiveMoveDepth(diff, moves.length);
+  const adaptiveWidth = getAdaptiveMoveWidth(diff, moves.length);
   const beforeOppThreatValue = countImmediateThreatValue(state.board, opp, size);
   let bestPriority = null;
   let bestMove = moves[0];
 
   for (const move of moves) {
+    if (searchExpired() && bestPriority) break;
     const piece = state.pieces[move.pieceId];
     const sx = piece.x, sy = piece.y;
     const { x: tx, y: ty } = move.target;
@@ -2730,8 +2817,8 @@ function aiPickMovement() {
       moveAdvancementScore(state.board, tx, ty, me, size) * diff.synergyWeight * 0.5 +
       captureSwing * 0.01 +
       -moveAdvancementScore(before, sx, sy, me, size) * diff.synergyWeight * 0.3;
-    const oppFutureWorse = diff.moveDepth > 0
-      ? -moveLookahead(opp, Math.min(diff.moveDepth, 5), 0, diff.searchWidth, diff)
+    const oppFutureWorse = adaptiveDepth > 0
+      ? -moveLookahead(opp, Math.min(adaptiveDepth, 5), 0, adaptiveWidth, diff)
       : 0;
 
     piece.x = sx;
@@ -2762,6 +2849,7 @@ function aiPickMovement() {
 function scheduleAI() {
   if (!state.vsAI || state.aiPlayer !== state.currentPlayer) return;
   if (state.phase === "game-over") return;
+  const difficulty = AI_DIFFICULTY[state.aiDifficulty];
 
   state.aiThinking = true;
   state.messageMain = `${playerName(state.aiPlayer)}（AI）思考中...`;
@@ -2772,7 +2860,7 @@ function scheduleAI() {
     aiTimer = null;
     state.aiThinking = false;
     performAIAction();
-  }, 350 + Math.random() * 350);
+  }, difficulty.thinkDelayMs);
 }
 
 function performAIAction() {
@@ -3001,10 +3089,20 @@ function renderBoard() {
         (state.phase === "opening-capture" || state.phase === "bonus-capture") &&
         pieceId &&
         state.pieces[pieceId].owner === otherPlayer(state.currentPlayer);
+      const isLastTarget =
+        state.lastActionTarget &&
+        state.lastActionTarget.x === x &&
+        state.lastActionTarget.y === y;
+      const isLastSource =
+        state.lastActionSource &&
+        state.lastActionSource.x === x &&
+        state.lastActionSource.y === y;
 
       if (canPlace) point.classList.add("playable");
       if (validMove) point.classList.add("valid-move");
       if (captureTarget) point.classList.add("capture-target");
+      if (isLastTarget) point.classList.add("last-target");
+      if (isLastSource) point.classList.add("last-source");
       if (pieceId && pieceId === state.selectedPieceId) point.classList.add("selected");
 
       if (pieceId) {
